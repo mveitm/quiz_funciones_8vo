@@ -187,12 +187,13 @@
   function hideResultsModal(){ document.getElementById('modalOv').style.display='none'; }
 
   // ---------- Controles ----------
-  const TEACHER_EMAIL = 'mauricio@colegio.cl'; // <— cambia aquí tu correo
-  const REPORT_ENDPOINT = '';// opcional: URL de webhook (Apps Script, webhook.site, etc.)
+  const TEACHER_EMAIL = 'veitmeza@gmail.com';
+  const TEACHER_PHONE = '+56961410052';
+  const REPORT_ENDPOINT = '';// opcional: URL de webhook
 
   function startQuiz(){ seedQuiz(); current=0; renderStage(); updateScoreChip(); }
   function restart(){ hideResultsModal(); startQuiz(); }
-  function setButtons(active){ ['btnEnviar','btnReiniciar','btnPrev','btnRevisar','btnNext','btnCloseModal','btnSend','btnCopy'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=!active; }); }
+  function setButtons(active){ ['btnEnviar','btnReiniciar','btnPrev','btnRevisar','btnNext','btnCloseModal','btnSend','btnCopy','btnWA','btnSMS'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=!active; }); }
 
   function buildReport(){
     const total = QUESTIONS.length;
@@ -234,22 +235,37 @@
     if(!name){ alert('Ingresa el nombre del estudiante.'); return; }
     const reportText = buildReportText(name);
 
-    // 1) Si hay endpoint, intenta POST JSON
     if(REPORT_ENDPOINT){
       try{
         const res = await fetch(REPORT_ENDPOINT, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, report: buildReport(), reportText }) });
         if(!res.ok) throw new Error('HTTP '+res.status);
         alert('Resultados enviados al profesor (endpoint).');
         return;
-      }catch(e){ console.warn('POST falló, se usará mailto:', e);
-      }
+      }catch(e){ console.warn('POST falló, se usará mailto:', e); }
     }
-    // 2) Fallback: mailto
     const subject = encodeURIComponent(`Resultados Quiz - ${name}`);
     const body = encodeURIComponent(reportText);
     const href = `mailto:${encodeURIComponent(TEACHER_EMAIL)}?subject=${subject}&body=${body}`;
     window.location.href = href;
   }
+
+  function sendWhatsApp(){
+    const name = (document.getElementById('studentName')?.value||'').trim();
+    if(!name){ alert('Ingresa el nombre del estudiante.'); return; }
+    const txt = buildReportText(name);
+    const phone = TEACHER_PHONE.replace(/[^\d]/g,'');
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(txt)}`;
+    window.open(url, '_blank');
+  }
+
+  function sendSMS(){
+    const name = (document.getElementById('studentName')?.value||'').trim();
+    if(!name){ alert('Ingresa el nombre del estudiante.'); return; }
+    const txt = buildReportText(name);
+    const url = `sms:${TEACHER_PHONE}?body=${encodeURIComponent(txt)}`;
+    window.location.href = url;
+  }
+
   async function copyResults(){
     const name = (document.getElementById('studentName')?.value||'').trim();
     const reportText = buildReportText(name);
@@ -266,12 +282,14 @@
     byId('btnCloseModal')?.addEventListener('click', ()=>{ SFX.click(); hideResultsModal(); });
     byId('btnSend')?.addEventListener('click', sendResults);
     byId('btnCopy')?.addEventListener('click', copyResults);
+    byId('btnWA')?.addEventListener('click', sendWhatsApp);
+    byId('btnSMS')?.addEventListener('click', sendSMS);
 
     wireSfx();
     document.addEventListener('change', (ev)=>{ if(ev.target && ev.target.matches('input[type="radio"]')){ const sel=getSelected(); if(sel!==null){ QUESTIONS[current].userChoice = sel; } } });
   }
 
-  document.addEventListener('DOMContentLoaded', ()=>{ bind(); startQuiz(); setButtons(true); }); startQuiz(); setButtons(true); }); startQuiz(); setButtons(true); });
+  document.addEventListener('DOMContentLoaded', ()=>{ bind(); startQuiz(); setButtons(true); }); startQuiz(); setButtons(true); }); startQuiz(); setButtons(true); }); startQuiz(); setButtons(true); });
   </script>
 </body>
 </html>
