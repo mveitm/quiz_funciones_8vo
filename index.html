@@ -69,6 +69,7 @@
     .stat:last-child{border-bottom:0}
 
     @media print{ header, .footer-actions, .intro, .modal-ov{display:none} body{background:#fff; color:#000} .panel, .qcard{background:#fff; color:#000; border-color:#888} .chip{border:1px solid #000} }
+  .badge.solid{ background:#25335d; color:var(--text); }
   </style>
 </head>
 <body>
@@ -81,7 +82,6 @@
         </div>
       </div>
       <div class="btns">
-        <button id="btnStart">Comenzar</button>
         <button class="warn" id="btnEnviar">Resultados</button>
         <button id="btnReiniciar">Reiniciar</button>
         <span id="scoreChip" class="badge solid" aria-live="polite">Puntaje: —</span>
@@ -90,17 +90,7 @@
   </header>
 
   <main>
-    <section class="intro panel">
-      <h2>Instrucciones</h2>
-      <p>
-        Feedback inmediato por pregunta al pulsar <em>Revisar</em>. El botón <strong>Resultados</strong> califica todo lo pendiente (lo no respondido cuenta como incorrecto) y muestra un resumen.
-      </p>
-      <ul>
-        <li>Las funciones cambian en cada intento: pendientes e interceptos se generan aleatoriamente cuando corresponde.</li>
-        <li>Vista de una sola pregunta a la vez. Usa el mapa numérico para saltar.</li>
-        <li>Todos los clicks y resultados reproducen sonidos diferenciados.</li>
-      </ul>
-    </section>
+    
 
     <section class="grid">
       <aside class="panel">
@@ -436,11 +426,35 @@
    * Controles
    *********************************/
   function startQuiz(){ gradedAll=false; seedQuiz(); current=0; renderStage(); setButtons(true); updateScoreChip(); }
-  function restart(){ document.getElementById('stage').innerHTML=''; document.getElementById('mapa').innerHTML=''; document.getElementById('summary').textContent='Comienza el quiz para ver el estado.'; document.getElementById('scoreChip').textContent='Puntaje: —'; setButtons(false); QUESTIONS=[]; hideResultsModal(); }
+  function restart(){
+    hideResultsModal();
+    seedQuiz();
+    current = 0;
+    renderStage();
+    setButtons(true);
+    updateScoreChip();
+  }
   function setButtons(active){ ['btnEnviar','btnReiniciar','btnPrev','btnRevisar','btnNext'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=!active; }); }
 
   function bind(){
-    const btnStart = document.getElementById('btnStart'); btnStart.addEventListener('click', ()=>{ SFX.click(); startQuiz(); });
+    document.getElementById('btnEnviar').addEventListener('click', ()=>{ gradeAll(); });
+    document.getElementById('btnReiniciar').addEventListener('click', ()=>{ SFX.click(); restart(); });
+    document.getElementById('btnPrev').addEventListener('click', ()=>{ SFX.click(); goTo(current-1); });
+    document.getElementById('btnNext').addEventListener('click', ()=>{ SFX.click(); goTo(current+1); });
+    document.getElementById('btnRevisar').addEventListener('click', ()=>{ revisarActual(); });
+    document.getElementById('btnCloseModal').addEventListener('click', ()=>{ SFX.click(); hideResultsModal(); });
+
+    wireSfx();
+
+    document.addEventListener('change', (ev)=>{
+      if(ev.target && ev.target.matches('input[type="radio"]')){
+        const sel = getSelected();
+        if(sel!==null){ QUESTIONS[current].userChoice = sel; renderSummary(); }
+      }
+    });
+
+    setButtons(true);
+  });
     document.getElementById('btnEnviar').addEventListener('click', ()=>{ gradeAll(); });
     document.getElementById('btnReiniciar').addEventListener('click', ()=>{ SFX.click(); restart(); });
     document.getElementById('btnPrev').addEventListener('click', ()=>{ SFX.click(); goTo(current-1); });
@@ -461,7 +475,7 @@
   }
 
   // init
-  (function init(){ bind(); })();
+  (function init(){ bind(); startQuiz(); })();
   </script>
 </body>
 </html>
