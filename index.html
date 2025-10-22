@@ -19,10 +19,11 @@
     .wrap{max-width:980px; margin:0 auto; padding:12px 16px}
     .title{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
     .badge{font-size:.8rem; padding:4px 10px; border-radius:999px; background:#25335d; color:var(--text)}
-    .btns{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+    .btns{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; align-items:center}
+    .input{background:#1b2544; color:var(--text); border:1px solid rgba(255,255,255,.15); border-radius:10px; padding:10px 12px; min-width:240px}
     button{background:var(--accent); color:#041226; border:0; padding:10px 14px; border-radius:12px; font-weight:700; cursor:pointer}
     button.secondary{background:#25335d; color:var(--text)}
-    button.warn{background:var(--warn); color:#221b00}
+    button.warn{background:#ffcc66; color:#221b00}
     button:disabled{opacity:.55; cursor:not-allowed}
 
     main{max-width:980px; margin:18px auto; padding:0 16px 96px}
@@ -35,7 +36,7 @@
     .chip{user-select:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:10px; background:var(--chip); color:var(--muted); font-weight:700; border:1px solid rgba(255,255,255,.08)}
     .chip.current{outline:2px solid #9dc1ff}
     .chip.correct{background:rgba(83,242,159,.18); color:var(--ok); border-color:rgba(83,242,159,.6)}
-    .chip.incorrect{background:rgba(255,102,130,.15); color:var(--error); border-color:rgba(255,102,130,.5)}
+    .chip.incorrect{background:rgba(255,102,130,.15); color:var(--error); border-color:rgba(255,255,255,.5)}
 
     .qcard{background:rgba(12,18,36,.6); border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:16px}
     .qhead{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
@@ -59,10 +60,12 @@
 
     /* Modal */
     .modal-ov{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.6); z-index:1500}
-    .modal{background:var(--panel); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:20px; max-width:420px; width:92%}
+    .modal{background:var(--panel); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:20px; max-width:520px; width:92%}
     .modal h3{margin:0 0 10px 0}
     .stat{display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed rgba(255,255,255,.15)}
     .stat:last-child{border-bottom:0}
+    .modal .input{width:100%; margin-top:10px}
+    .modal .actions{display:flex; gap:8px; justify-content:flex-end; margin-top:14px}
 
     @media print{ header, .footer-actions, .modal-ov{display:none} body{background:#fff; color:#000} .panel, .qcard{background:#fff; color:#000; border-color:#888} .chip{border:1px solid #000} }
   </style>
@@ -72,7 +75,7 @@
     <div class="wrap">
       <div class="title">
         <div>
-          <div class="badge">PAES · 8°–III° · Funciones</div>
+          <div class="badge">Con cariño de su profesor Mauricio ❤️</div>
           <h1 style="margin:.2rem 0 0">Quiz: Funciones Lineales y Afines</h1>
         </div>
       </div>
@@ -107,10 +110,14 @@
     <div class="modal">
       <h3 id="modalTitle">Resumen de resultados</h3>
       <div id="modalBody"></div>
-      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:14px">
+      <div class="actions">
+        <input id="studentName" class="input" type="text" placeholder="Nombre del estudiante" />
+        <button id="btnSend">Enviar al profesor</button>
+        <button id="btnCopy">Copiar</button>
         <button id="btnCloseModal">Cerrar</button>
       </div>
     </div>
+  </div>
   </div>
 
   <script>
@@ -180,9 +187,74 @@
   function hideResultsModal(){ document.getElementById('modalOv').style.display='none'; }
 
   // ---------- Controles ----------
+  const TEACHER_EMAIL = 'mauricio@colegio.cl'; // <— cambia aquí tu correo
+  const REPORT_ENDPOINT = '';// opcional: URL de webhook (Apps Script, webhook.site, etc.)
+
   function startQuiz(){ seedQuiz(); current=0; renderStage(); updateScoreChip(); }
   function restart(){ hideResultsModal(); startQuiz(); }
-  function setButtons(active){ ['btnEnviar','btnReiniciar','btnPrev','btnRevisar','btnNext','btnCloseModal'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=!active; }); }
+  function setButtons(active){ ['btnEnviar','btnReiniciar','btnPrev','btnRevisar','btnNext','btnCloseModal','btnSend','btnCopy'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=!active; }); }
+
+  function buildReport(){
+    const total = QUESTIONS.length;
+    const correct = score();
+    const incorrect = total - correct;
+    const pct = Math.round(100*correct/total);
+    const perQ = QUESTIONS.map((q,i)=>({
+      n: i+1, context:q.context, skill:q.skill, stem:q.stem,
+      answer: q.userChoice!==null? q.choices[q.userChoice].text : null,
+      correct: q.choices.find(c=>c.correct).text,
+      isCorrect: q.isCorrect
+    }));
+    return { total, correct, incorrect, pct, perQ };
+  }
+  function buildReportText(name){
+    const dt = new Date().toLocaleString('es-CL');
+    const r = buildReport();
+    const lines = [
+      `Resultados Quiz - Funciones Lineales y Afines`,
+      `Estudiante: ${name||'(sin nombre)'}`,
+      `Fecha: ${dt}`,
+      `Puntaje: ${r.correct}/${r.total} (${r.pct}%)`,
+      `Correctas: ${r.correct} | Incorrectas: ${r.incorrect}`,
+      '', 'Detalle por pregunta:'
+    ];
+    r.perQ.forEach(x=>{
+      lines.push(`${x.n}. [${x.context}/${x.skill}]`);
+      lines.push(`   Enunciado: ${x.stem}`);
+      lines.push(`   Respuesta: ${x.answer||'—'}`);
+      lines.push(`   Correcta: ${x.correct}`);
+      lines.push(`   Resultado: ${x.isCorrect? 'CORRECTA':'INCORRECTA'}`);
+    });
+    return lines.join('
+');
+  }
+
+  async function sendResults(){
+    const name = (document.getElementById('studentName')?.value||'').trim();
+    if(!name){ alert('Ingresa el nombre del estudiante.'); return; }
+    const reportText = buildReportText(name);
+
+    // 1) Si hay endpoint, intenta POST JSON
+    if(REPORT_ENDPOINT){
+      try{
+        const res = await fetch(REPORT_ENDPOINT, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, report: buildReport(), reportText }) });
+        if(!res.ok) throw new Error('HTTP '+res.status);
+        alert('Resultados enviados al profesor (endpoint).');
+        return;
+      }catch(e){ console.warn('POST falló, se usará mailto:', e);
+      }
+    }
+    // 2) Fallback: mailto
+    const subject = encodeURIComponent(`Resultados Quiz - ${name}`);
+    const body = encodeURIComponent(reportText);
+    const href = `mailto:${encodeURIComponent(TEACHER_EMAIL)}?subject=${subject}&body=${body}`;
+    window.location.href = href;
+  }
+  async function copyResults(){
+    const name = (document.getElementById('studentName')?.value||'').trim();
+    const reportText = buildReportText(name);
+    try{ await navigator.clipboard.writeText(reportText); alert('Resumen copiado.'); }catch(e){ console.warn(e); }
+  }
 
   function bind(){
     const byId = id => document.getElementById(id);
@@ -192,12 +264,14 @@
     byId('btnNext')?.addEventListener('click', ()=>{ SFX.click(); goTo(current+1); });
     byId('btnRevisar')?.addEventListener('click', revisarActual);
     byId('btnCloseModal')?.addEventListener('click', ()=>{ SFX.click(); hideResultsModal(); });
+    byId('btnSend')?.addEventListener('click', sendResults);
+    byId('btnCopy')?.addEventListener('click', copyResults);
 
     wireSfx();
     document.addEventListener('change', (ev)=>{ if(ev.target && ev.target.matches('input[type="radio"]')){ const sel=getSelected(); if(sel!==null){ QUESTIONS[current].userChoice = sel; } } });
   }
 
-  document.addEventListener('DOMContentLoaded', ()=>{ bind(); startQuiz(); setButtons(true); });
+  document.addEventListener('DOMContentLoaded', ()=>{ bind(); startQuiz(); setButtons(true); }); startQuiz(); setButtons(true); }); startQuiz(); setButtons(true); });
   </script>
 </body>
 </html>
