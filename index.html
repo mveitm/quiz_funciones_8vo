@@ -70,6 +70,7 @@
 
     @media print{ header, .footer-actions, .intro, .modal-ov{display:none} body{background:#fff; color:#000} .panel, .qcard{background:#fff; color:#000; border-color:#888} .chip{border:1px solid #000} }
   .badge.solid{ background:#25335d; color:var(--text); }
+  .footer-actions{ z-index:1000 !important; }
   </style>
 </head>
 <body>
@@ -82,8 +83,8 @@
         </div>
       </div>
       <div class="btns">
-        <button class="warn" id="btnEnviar">Resultados</button>
-        <button id="btnReiniciar">Reiniciar</button>
+        <button class="warn" id="btnEnviar" onclick="gradeAll()">Resultados</button>
+        <button id="btnReiniciar" onclick="SFX?.click?.(); restart()">Reiniciar</button>
         <span id="scoreChip" class="badge solid" aria-live="polite">Puntaje: —</span>
       </div>
     </div>
@@ -104,9 +105,9 @@
 
   <div class="footer-actions">
     <div class="wrap">
-      <button id="btnPrev" class="secondary">Anterior</button>
-      <button id="btnRevisar" class="warn">Revisar</button>
-      <button id="btnNext">Siguiente</button>
+      <button id="btnPrev" class="secondary" onclick="SFX?.click?.(); goTo(current-1)">Anterior</button>
+      <button id="btnRevisar" class="warn" onclick="revisarActual()">Revisar</button>
+      <button id="btnNext" onclick="SFX?.click?.(); goTo(current+1)">Siguiente</button>
     </div>
   </div>
 
@@ -116,7 +117,7 @@
       <h3 id="modalTitle">Resumen de resultados</h3>
       <div id="modalBody"></div>
       <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:14px">
-        <button id="btnCloseModal">Cerrar</button>
+        <button id="btnCloseModal" onclick="SFX?.click?.(); hideResultsModal()">Cerrar</button>
       </div>
     </div>
   </div>
@@ -364,7 +365,10 @@
   }
 
   function goTo(idx){ current = Math.max(0, Math.min(QUESTIONS.length-1, idx)); renderStage(); }
-  function getSelected(){ const checked = document.querySelector(`input[name=\"q_${current}\"]:checked`); return checked? parseInt(checked.value,10) : null; }
+  function getSelected(){
+    const checked = document.querySelector(`input[name="q_${current}"]:checked`);
+    return checked ? parseInt(checked.value,10) : null;
+  }\"]:checked`); return checked? parseInt(checked.value,10) : null; }
 
   function revisarActual(){
     const q = QUESTIONS[current];
