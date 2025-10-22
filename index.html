@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quiz: Funciones Lineales y Afines (30 min)</title>
+  <style>
+    :root{
+      --bg:#0b1020;          /* fondo oscuro elegante */
+      --panel:#11182e;       /* paneles */
+      --muted:#7f8db2;       /* texto secundario */
+      --text:#f2f5ff;        /* texto principal */
+      --accent:#4ea1ff;      /* botones primarios */
+      --accent-2:#8fffab;    /* verde */
+      --warn:#ffcc66;        /* advertencia */
+      --error:#ff6682;       /* rojo */
+      --ok:#53f29f;          /* correcto */
+      --chip:#1b2544;        /* chips */
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial; 
+      background: radial-gradient(1200px 800px at 20% -10%, #1a2453, transparent 60%),
+                  radial-gradient(1000px 700px at 120% 10%, #103a5a, transparent 40%),
+                  var(--bg);
+      color:var(--text);
+      line-height:1.4;
+    }
+    header{
+      position:sticky; top:0; z-index:5; backdrop-filter:saturate(1.1) blur(6px);
+      background:linear-gradient(180deg, rgba(17,24,46,.9), rgba(17,24,46,.7));
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .wrap{max-width:980px; margin:0 auto; padding:12px 16px}
+    .title{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+    .badge{font-size:.8rem; padding:4px 10px; border-radius:999px; background:var(--chip); color:var(--muted)}
+    .timer{margin-left:auto; font-weight:700; letter-spacing:.5px; font-variant-numeric:tabular-nums}
+    .btns{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+    button{background:var(--accent); color:#041226; border:0; padding:10px 14px; border-radius:12px; font-weight:700; cursor:pointer}
+    button.secondary{background:#25335d; color:var(--text)}
+    button.warn{background:var(--warn); color:#221b00}
+    button.ghost{background:transparent; color:var(--muted); border:1px solid rgba(255,255,255,.15)}
+    button:disabled{opacity:.55; cursor:not-allowed}
+
+    main{max-width:980px; margin:18px auto; padding:0 16px 100px}
+    .panel{background:rgba(17,24,46,.7); border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .intro h2{margin:.2rem 0 0}
+    .intro p{color:var(--muted)}
+
+    .grid{
+      display:grid; gap:16px; grid-template-columns:1fr; 
+    }
+    @media(min-width:900px){ .grid{ grid-template-columns: 300px 1fr; } }
+
+    .mapa{display:flex; flex-wrap:wrap; gap:8px}
+    .chip{
+      user-select:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+      width:36px; height:36px; border-radius:10px; background:var(--chip); color:var(--muted); font-weight:700;
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .chip.unanswered{outline:2px dashed var(--warn)}
+    .chip.correct{background:rgba(83,242,159,.18); color:var(--ok); border-color:rgba(83,242,159,.6)}
+    .chip.incorrect{background:rgba(255,102,130,.15); color:var(--error); border-color:rgba(255,102,130,.5)}
+
+    .question{background:rgba(12,18,36,.6); border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:14px; margin-bottom:14px}
+    .qhead{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .qnum{font-weight:800; color:#d3ddff}
+    .qctx{margin-left:auto; display:flex; gap:8px}
+    .ctx{font-size:.72rem; padding:4px 8px; border-radius:999px; background:#1c2a4f; color:#b2c3ff}
+    .skill{font-size:.72rem; padding:4px 8px; border-radius:999px; background:#1a3a30; color:#8fffcb}
+    .stem{margin:10px 0}
+
+    .choices{display:grid; gap:8px}
+    .choice{
+      background:rgba(21,28,50,.85); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px; display:flex; gap:10px; align-items:flex-start
+    }
+    .choice input{margin-top:4px; transform:scale(1.15)}
+    .letter{width:26px; height:26px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; background:#172142; color:#b9c8ff; flex:0 0 26px}
+
+    .question.correct{border-color:rgba(83,242,159,.6)}
+    .question.incorrect{border-color:rgba(255,102,130,.6)}
+
+    details.explain{margin-top:8px}
+    details.explain summary{color:#b2c7ff; cursor:pointer}
+    .exbody{color:#c9d6ff}
+
+    .report{margin-top:16px}
+    .bars{display:grid; gap:10px}
+    .bar{background:#1a2346; border-radius:10px; padding:8px; border:1px solid rgba(255,255,255,.08)}
+    .bar h4{margin:0 0 6px 0; font-size:.95rem}
+    .bartrack{position:relative; height:14px; background:#0e1836; border-radius:999px; overflow:hidden; border:1px solid rgba(255,255,255,.08)}
+    .barfill{position:absolute; left:0; top:0; bottom:0; width:0%; background:linear-gradient(90deg, var(--accent-2), #39c5ff)}
+    .bartext{font-variant-numeric:tabular-nums; color:var(--muted); font-size:.9rem; margin-top:4px}
+
+    .footer-actions{position:fixed; bottom:0; left:0; right:0; background:linear-gradient(180deg, rgba(17,24,46,.1), rgba(17,24,46,.9)); backdrop-filter: blur(6px);
+      border-top:1px solid rgba(255,255,255,.08)}
+    .footer-actions .wrap{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+
+    .muted{color:var(--muted)}
+
+    @media print{
+      header, .footer-actions, .intro{display:none}
+      body{background:#fff; color:#000}
+      .panel, .question{background:#fff; color:#000; border-color:#888}
+      .chip{border:1px solid #000}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="title">
+        <div>
+          <div class="badge">PAES · 8°–III° · Funciones</div>
+          <h1 style="margin:.2rem 0 0">Quiz: Funciones Lineales y Afines</h1>
+        </div>
+        <div class="timer" id="timer">30:00</div>
+      </div>
+      <div class="btns">
+        <button id="btnStart">Comenzar</button>
+        <button class="secondary" id="btnResaltar">Resaltar sin responder</button>
+        <button class="warn" id="btnEnviar">Enviar</button>
+        <button class="ghost" id="btnReiniciar">Reiniciar</button>
+        <button class="ghost" id="btnImprimir">Imprimir</button>
+        <button class="ghost" id="btnDescargar">Descargar reporte (JSON)</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="intro panel">
+      <h2>Instrucciones</h2>
+      <p>
+        Dispones de <strong>30 minutos</strong>. Las preguntas se barajan en cada intento y las alternativas (A–D) también. 
+        Puedes enviar aunque falten preguntas, pero te avisaremos. Al terminar verás un <strong>reporte visual</strong> con tus aciertos y en qué te equivocaste.
+      </p>
+      <ul>
+        <li>Contenidos: modelo simbólico, tipo (lineal/afín), cálculo de valores, parámetros (pendiente/intercepto).</li>
+        <li>Contextos: taxi, rendimiento de bencina, costo de máquina, vendedor con comisión.</li>
+      </ul>
+    </section>
+
+    <section class="grid">
+      <aside class="panel">
+        <h3 style="margin-top:0">Mapa de preguntas</h3>
+        <div id="mapa" class="mapa" aria-live="polite"></div>
+        <p class="muted" style="margin-top:10px">Toca un número para saltar a la pregunta.</p>
+        <div class="panel" style="margin-top:12px">
+          <h3 style="margin-top:0">Resumen</h3>
+          <div id="summary" class="muted">Comienza el quiz para ver el resumen.</div>
+        </div>
+      </aside>
+
+      <section id="quiz" aria-live="polite"></section>
+    </section>
+
+    <section id="report" class="report panel" style="display:none">
+      <h2 style="margin-top:0">Reporte de resultados</h2>
+      <p id="scoreline" class="muted"></p>
+      <div class="bars" id="skillBars"></div>
+      <div id="detail"></div>
+    </section>
+  </main>
+
+  <div class="footer-actions">
+    <div class="wrap">
+      <span class="muted">Acciones:</span>
+      <button id="btnStart2">Comenzar</button>
+      <button class="secondary" id="btnResaltar2">Resaltar sin responder</button>
+      <button class="warn" id="btnEnviar2">Enviar</button>
+      <button class="ghost" id="btnReiniciar2">Reiniciar</button>
+      <button class="ghost" id="btnImprimir2">Imprimir</button>
+      <button class="ghost" id="btnDescargar2">Descargar reporte</button>
+    </div>
+  </div>
+
+  <script>
+  /*****************************
+   * Parámetros principales
+   *****************************/
+  const DURATION_MIN = 30; // minutos
+
+  /*****************************
+   * Banco de preguntas (16)
+   * 4 contextos × 4 sub-habilidades
+   *****************************/
+  const BANK = [
+    // Taxis
+    {
+      id:"TX-1", context:"Taxi", skill:"Modelo",
+      stem:"En una ciudad, el taxi cobra $600 de bajada de bandera y $400 por kilómetro recorrido. ¿Qué modelo representa el costo total f(x) en función de los kilómetros x?",
+      choices:[
+        {text:"f(x) = 400x + 600", correct:true},
+        {text:"f(x) = 600x + 400", correct:false},
+        {text:"f(x) = 400x", correct:false},
+        {text:"f(x) = 600 + 400/x", correct:false},
+      ],
+      explanation:"La pendiente es el costo por kilómetro (400) y el intercepto es la bajada de bandera (600): f(x) = 400x + 600."
+    },
+    {
+      id:"TX-2", context:"Taxi", skill:"Tipo",
+      stem:"Según el modelo de taxis anterior, ¿de qué tipo es la función f(x) = 400x + 600?",
+      choices:[
+        {text:"Lineal (pasa por el origen)", correct:false},
+        {text:"Afín (no pasa por el origen)", correct:true},
+        {text:"Constante", correct:false},
+        {text:"Cuadrática", correct:false},
+      ],
+      explanation:"Tiene término independiente distinto de cero (600), por lo que es afín."
+    },
+    {
+      id:"TX-3", context:"Taxi", skill:"Cálculo",
+      stem:"¿Cuánto cuesta un viaje de 12 km? Usa f(x) = 400x + 600.",
+      choices:[
+        {text:"$5.400", correct:true},
+        {text:"$4.800", correct:false},
+        {text:"$6.000", correct:false},
+        {text:"$5.000", correct:false},
+      ],
+      explanation:"f(12) = 400·12 + 600 = 4.800 + 600 = $5.400."
+    },
+    {
+      id:"TX-4", context:"Taxi", skill:"Parámetros",
+      stem:"Para f(x) = 400x + 600, selecciona la opción correcta sobre (pendiente; intercepto).",
+      choices:[
+        {text:"Pendiente 400; Intercepto 600", correct:true},
+        {text:"Pendiente 600; Intercepto 400", correct:false},
+        {text:"Pendiente 400; Intercepto 0", correct:false},
+        {text:"Pendiente 0; Intercepto 600", correct:false},
+      ],
+      explanation:"La pendiente es el coeficiente de x (400) y el intercepto es el término independiente (600)."
+    },
+
+    // Bencina / Rendimiento
+    {
+      id:"BK-1", context:"Bencina", skill:"Modelo",
+      stem:"Un auto rinde 15 km por litro. Sea k(ℓ) la cantidad de km que puede recorrer con ℓ litros. ¿Cuál es el modelo correcto?",
+      choices:[
+        {text:"k(ℓ) = 15ℓ", correct:true},
+        {text:"k(ℓ) = ℓ/15", correct:false},
+        {text:"k(ℓ) = 15/ℓ", correct:false},
+        {text:"k(ℓ) = ℓ", correct:false},
+      ],
+      explanation:"Si por cada litro avanza 15 km, con ℓ litros avanza 15·ℓ km."
+    },
+    {
+      id:"BK-2", context:"Bencina", skill:"Tipo",
+      stem:"La función k(ℓ) = 15ℓ es…",
+      choices:[
+        {text:"Lineal (proporcional, pasa por el origen)", correct:true},
+        {text:"Afín (no pasa por el origen)", correct:false},
+        {text:"Constante", correct:false},
+        {text:"Cuadrática", correct:false},
+      ],
+      explanation:"k(0) = 0 y es de la forma m·x, por lo tanto es lineal/proporcional."
+    },
+    {
+      id:"BK-3", context:"Bencina", skill:"Cálculo",
+      stem:"¿Cuántos km puede recorrer con 30 L? Usa k(ℓ) = 15ℓ.",
+      choices:[
+        {text:"450 km", correct:true},
+        {text:"150 km", correct:false},
+        {text:"300 km", correct:false},
+        {text:"30 km", correct:false},
+      ],
+      explanation:"k(30) = 15·30 = 450 km."
+    },
+    {
+      id:"BK-4", context:"Bencina", skill:"Parámetros",
+      stem:"En k(ℓ) = 15ℓ, selecciona la opción correcta sobre (pendiente; intercepto).",
+      choices:[
+        {text:"Pendiente 15; Intercepto 0", correct:true},
+        {text:"Pendiente 0; Intercepto 15", correct:false},
+        {text:"Pendiente 1/15; Intercepto 0", correct:false},
+        {text:"Pendiente 15; Intercepto 600", correct:false},
+      ],
+      explanation:"La pendiente es 15; al no haber término independiente, el intercepto es 0."
+    },
+
+    // Máquina industrial
+    {
+      id:"MA-1", context:"Máquina", skill:"Modelo",
+      stem:"Una máquina tiene costo fijo de $50.000 más $2.000 por unidad producida. ¿Cuál es el modelo de costo total C(x)?",
+      choices:[
+        {text:"C(x) = 2.000x + 50.000", correct:true},
+        {text:"C(x) = 2.000x", correct:false},
+        {text:"C(x) = 50.000x + 2.000", correct:false},
+        {text:"C(x) = 50.000 − 2.000x", correct:false},
+      ],
+      explanation:"Costo variable (pendiente) 2.000 por unidad y costo fijo (intercepto) 50.000."
+    },
+    {
+      id:"MA-2", context:"Máquina", skill:"Tipo",
+      stem:"Según el modelo C(x) = 2.000x + 50.000, la función es…",
+      choices:[
+        {text:"Afín (no pasa por el origen)", correct:true},
+        {text:"Lineal (pasa por el origen)", correct:false},
+        {text:"Constante", correct:false},
+        {text:"Exponencial", correct:false},
+      ],
+      explanation:"Tiene término independiente distinto de 0, por lo que es afín."
+    },
+    {
+      id:"MA-3", context:"Máquina", skill:"Cálculo",
+      stem:"¿Cuál es el costo de producir 50 unidades? Usa C(x) = 2.000x + 50.000.",
+      choices:[
+        {text:"$150.000", correct:true},
+        {text:"$100.000", correct:false},
+        {text:"$450.000", correct:false},
+        {text:"$50.000", correct:false},
+      ],
+      explanation:"C(50) = 2.000·50 + 50.000 = 100.000 + 50.000 = $150.000."
+    },
+    {
+      id:"MA-4", context:"Máquina", skill:"Parámetros",
+      stem:"Para C(x) = 2.000x + 50.000, selecciona la opción correcta (pendiente; intercepto).",
+      choices:[
+        {text:"Pendiente 2.000; Intercepto 50.000", correct:true},
+        {text:"Pendiente 50.000; Intercepto 2.000", correct:false},
+        {text:"Pendiente 2.000; Intercepto 0", correct:false},
+        {text:"Pendiente 0; Intercepto 50.000", correct:false},
+      ],
+      explanation:"El coeficiente de x es 2.000 (pendiente) y el término independiente es 50.000 (intercepto)."
+    },
+
+    // Vendedor con comisión
+    {
+      id:"VE-1", context:"Vendedor", skill:"Modelo",
+      stem:"Un vendedor recibe sueldo base de $80.000 más $500 por cada libro vendido. ¿Cuál es el modelo de ingreso f(x)?",
+      choices:[
+        {text:"f(x) = 500x + 80.000", correct:true},
+        {text:"f(x) = 80.000x + 500", correct:false},
+        {text:"f(x) = 500x", correct:false},
+        {text:"f(x) = 80.000 − 500x", correct:false},
+      ],
+      explanation:"Comisión (pendiente) $500 por libro y sueldo base (intercepto) $80.000."
+    },
+    {
+      id:"VE-2", context:"Vendedor", skill:"Tipo",
+      stem:"Según f(x) = 500x + 80.000, la función es…",
+      choices:[
+        {text:"Afín (no pasa por el origen)", correct:true},
+        {text:"Lineal (pasa por el origen)", correct:false},
+        {text:"Constante", correct:false},
+        {text:"Logarítmica", correct:false},
+      ],
+      explanation:"Al tener término independiente 80.000, no pasa por el origen: es afín."
+    },
+    {
+      id:"VE-3", context:"Vendedor", skill:"Cálculo",
+      stem:"¿Cuánto ganará si vende 400 libros? Usa f(x) = 500x + 80.000.",
+      choices:[
+        {text:"$280.000", correct:true},
+        {text:"$130.000", correct:false},
+        {text:"$200.000", correct:false},
+        {text:"$480.000", correct:false},
+      ],
+      explanation:"f(400) = 500·400 + 80.000 = 200.000 + 80.000 = $280.000."
+    },
+    {
+      id:"VE-4", context:"Vendedor", skill:"Parámetros",
+      stem:"Para f(x) = 500x + 80.000, selecciona la opción correcta (pendiente; intercepto).",
+      choices:[
+        {text:"Pendiente 500; Intercepto 80.000", correct:true},
+        {text:"Pendiente 80.000; Intercepto 500", correct:false},
+        {text:"Pendiente 500; Intercepto 0", correct:false},
+        {text:"Pendiente 0; Intercepto 80.000", correct:false},
+      ],
+      explanation:"El coeficiente de x es 500 (pendiente) y el término independiente es 80.000 (intercepto)."
+    },
+  ];
+
+  /*****************************
+   * Estado del intento
+   *****************************/
+  let quizQuestions = []; // copia barajada del banco
+  let startTime = null;   // Date
+  let timerId = null;     // setInterval id
+  let remaining = DURATION_MIN * 60; // segundos
+  let graded = false;     // ya calificado
+  let lastReport = null;  // objeto de reporte para descargar
+
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i],a[j]] = [a[j],a[i]];
+    }
+    return a;
+  }
+
+  function deepCopy(obj){ return JSON.parse(JSON.stringify(obj)); }
+
+  function seedQuiz(){
+    quizQuestions = shuffle(BANK.map(q => ({...deepCopy(q)})));
+    // barajar alternativas de cada pregunta
+    quizQuestions.forEach(q => { q.choices = shuffle(q.choices); });
+  }
+
+  function renderQuiz(){
+    const quiz = document.getElementById('quiz');
+    quiz.innerHTML = '';
+
+    quizQuestions.forEach((q, idx) => {
+      const qId = `q_${idx}`;
+      const qAnchor = document.createElement('a');
+      qAnchor.id = `anchor_${idx}`;
+      quiz.appendChild(qAnchor);
+
+      const card = document.createElement('article');
+      card.className = 'question';
+      card.dataset.index = idx;
+
+      const head = document.createElement('div');
+      head.className = 'qhead';
+      head.innerHTML = `<div class="qnum">Pregunta ${idx+1}</div>` +
+                       `<div class="qctx"><span class="ctx">${q.context}</span><span class="skill">${q.skill}</span></div>`;
+      card.appendChild(head);
+
+      const stem = document.createElement('div');
+      stem.className = 'stem';
+      stem.textContent = q.stem;
+      card.appendChild(stem);
+
+      const choices = document.createElement('div');
+      choices.className = 'choices';
+
+      q.choices.forEach((c, cidx) => {
+        const id = `${qId}_opt_${cidx}`;
+        const row = document.createElement('label');
+        row.className = 'choice';
+        row.setAttribute('for', id);
+        const letter = String.fromCharCode(65 + cidx); // A-D segun orden barajado
+        row.innerHTML = `<span class="letter">${letter}</span>` +
+                        `<input type="radio" id="${id}" name="${qId}" value="${cidx}" />` +
+                        `<div class="ctext">${c.text}</div>`;
+        choices.appendChild(row);
+      });
+      card.appendChild(choices);
+
+      const det = document.createElement('details');
+      det.className = 'explain';
+      det.innerHTML = `<summary>Ver explicación</summary><div class="exbody">${q.explanation}</div>`;
+      det.open = false;
+      card.appendChild(det);
+
+      quiz.appendChild(card);
+    });
+
+    renderMap();
+    updateSummary();
+  }
+
+  function renderMap(){
+    const map = document.getElementById('mapa');
+    map.innerHTML = '';
+    quizQuestions.forEach((q, idx) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip';
+      chip.textContent = idx+1;
+      chip.title = `Ir a la pregunta ${idx+1}`;
+      chip.addEventListener('click', () => {
+        document.getElementById(`anchor_${idx}`)?.scrollIntoView({behavior:'smooth', block:'start'});
+      });
+      chip.id = `chip_${idx}`;
+      map.appendChild(chip);
+    });
+    markUnanswered();
+  }
+
+  function markUnanswered(){
+    quizQuestions.forEach((_, idx) => {
+      const selected = getSelectedIndex(idx);
+      const chip = document.getElementById(`chip_${idx}`);
+      chip.classList.toggle('unanswered', selected === null);
+    });
+  }
+
+  function getSelectedIndex(qIdx){
+    const qId = `q_${qIdx}`;
+    const checked = document.querySelector(`input[name="${qId}"]:checked`);
+    return checked ? parseInt(checked.value,10) : null;
+  }
+
+  function unansweredCount(){
+    let c = 0;
+    quizQuestions.forEach((_, idx) => { if(getSelectedIndex(idx) === null) c++; });
+    return c;
+  }
+
+  function startTimer(){
+    clearInterval(timerId);
+    remaining = DURATION_MIN * 60;
+    startTime = new Date();
+    updateTimerUI();
+    timerId = setInterval(() => {
+      remaining--; updateTimerUI();
+      if(remaining <= 0){ clearInterval(timerId); grade(true); }
+    }, 1000);
+  }
+
+  function secondsToMMSS(s){
+    const m = Math.floor(s/60).toString().padStart(2,'0');
+    const ss = Math.floor(s%60).toString().padStart(2,'0');
+    return `${m}:${ss}`;
+  }
+
+  function updateTimerUI(){
+    const t = document.getElementById('timer');
+    t.textContent = secondsToMMSS(Math.max(0, remaining));
+  }
+
+  function startQuiz(){
+    graded = false; lastReport = null;
+    document.getElementById('report').style.display = 'none';
+    seedQuiz();
+    renderQuiz();
+    startTimer();
+    // habilitar/estado botones
+    setButtons(true);
+  }
+
+  function setButtons(active){
+    const ids = ['btnEnviar','btnResaltar','btnReiniciar','btnImprimir','btnDescargar',
+                 'btnEnviar2','btnResaltar2','btnReiniciar2','btnImprimir2','btnDescargar2'];
+    ids.forEach(id => { const el = document.getElementById(id); if(el) el.disabled = !active; });
+  }
+
+  function updateSummary(){
+    const done = quizQuestions.length - unansweredCount();
+    const summary = document.getElementById('summary');
+    summary.innerHTML = `${done}/${quizQuestions.length} respondidas · <span class="muted">${unansweredCount()} sin responder</span>`;
+  }
+
+  function grade(autoByTimer=false){
+    if(graded) return;
+    graded = true;
+    clearInterval(timerId);
+
+    const usedSeconds = DURATION_MIN*60 - remaining;
+
+    let correct = 0, wrong = 0, blank = 0;
+    const perSkill = {};
+    const detail = [];
+
+    quizQuestions.forEach((q, idx) => {
+      perSkill[q.skill] ||= { total:0, correct:0 };
+      perSkill[q.skill].total++;
+
+      const selected = getSelectedIndex(idx);
+      const chip = document.getElementById(`chip_${idx}`);
+      const card = document.querySelector(`article.question[data-index="${idx}"]`);
+      let wasCorrect = false;
+      let selectedText = null;
+      let correctText = q.choices.find(c=>c.correct)?.text || '';
+
+      if(selected === null){
+        blank++;
+        chip.classList.remove('correct','incorrect');
+        chip.classList.add('unanswered');
+      } else {
+        selectedText = q.choices[selected].text;
+        wasCorrect = !!q.choices[selected].correct;
+        if(wasCorrect){ correct++; chip.classList.add('correct'); card.classList.add('correct'); }
+        else { wrong++; chip.classList.add('incorrect'); card.classList.add('incorrect'); }
+        chip.classList.remove('unanswered');
+      }
+
+      if(wasCorrect) perSkill[q.skill].correct++;
+
+      detail.push({
+        index: idx+1,
+        context: q.context,
+        skill: q.skill,
+        stem: q.stem,
+        selected: selectedText,
+        correct: correctText,
+        isCorrect: wasCorrect,
+        explanation: q.explanation
+      });
+
+      // abrir explicación si está incorrecta
+      const det = card.querySelector('details.explain');
+      det.open = !wasCorrect;
+
+      // deshabilitar inputs
+      card.querySelectorAll('input[type="radio"]').forEach(r => r.disabled = true);
+    });
+
+    const total = quizQuestions.length;
+    const scorePct = Math.round((correct/total)*100);
+
+    // Resumen superior
+    document.getElementById('scoreline').textContent = `Puntaje: ${correct}/${total} (${scorePct}%) · Tiempo usado: ${secondsToMMSS(usedSeconds)}`;
+
+    // Barras por habilidad
+    const bars = document.getElementById('skillBars');
+    bars.innerHTML = '';
+    Object.entries(perSkill).forEach(([skill, data]) => {
+      const pct = Math.round((data.correct / data.total) * 100);
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      bar.innerHTML = `<h4>${skill}</h4>`+
+        `<div class="bartrack"><div class="barfill" style="width:${pct}%"></div></div>`+
+        `<div class="bartext">${data.correct}/${data.total} correctas (${pct}%)</div>`;
+      bars.appendChild(bar);
+    });
+
+    // Detalle
+    const detailBox = document.getElementById('detail');
+    detailBox.innerHTML = detail.map(d => `
+      <div class="question ${d.isCorrect? 'correct':'incorrect'}" style="margin-top:12px">
+        <div class="qhead"><div class="qnum">Pregunta ${d.index}</div><div class="qctx"><span class="ctx">${d.context}</span><span class="skill">${d.skill}</span></div></div>
+        <div class="stem" style="margin-top:6px">${d.stem}</div>
+        <div style="margin-top:6px">
+          <div class="muted"><strong>Tu respuesta:</strong> ${d.selected ?? '<em>sin responder</em>'}</div>
+          <div class="muted"><strong>Correcta:</strong> ${d.correct}</div>
+        </div>
+        <details class="explain" open>
+          <summary>Explicación</summary>
+          <div class="exbody">${d.explanation}</div>
+        </details>
+      </div>
+    `).join('');
+
+    // Mostrar sección de reporte
+    document.getElementById('report').style.display = '';
+
+    // Construir objeto de reporte para descargar
+    lastReport = {
+      generatedAt: new Date().toISOString(),
+      durationMin: DURATION_MIN,
+      timeUsedSec: usedSeconds,
+      score: {correct, total, percent: scorePct, wrong, blank},
+      perSkill,
+      items: detail
+    };
+
+    // Actualizar mapa y resumen
+    markUnanswered();
+    updateSummary();
+
+    if(!autoByTimer && unansweredCount()>0){
+      alert(`Enviado. Tenías ${unansweredCount()} pregunta(s) sin responder.`);
+    }
+  }
+
+  function downloadReport(){
+    if(!lastReport){ alert('Primero realiza y envía el quiz.'); return; }
+    const blob = new Blob([JSON.stringify(lastReport,null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `reporte-quiz-funciones-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'_')}.json`;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
+  }
+
+  function printPage(){ window.print(); }
+
+  function restart(){
+    clearInterval(timerId);
+    // limpiar UI
+    document.getElementById('quiz').innerHTML='';
+    document.getElementById('mapa').innerHTML='';
+    document.getElementById('summary').textContent='Comienza el quiz para ver el resumen.';
+    document.getElementById('report').style.display='none';
+    document.getElementById('timer').textContent = `${DURATION_MIN.toString().padStart(2,'0')}:00`;
+    graded = false; lastReport = null; remaining = DURATION_MIN*60;
+  }
+
+  // Eventos de botones
+  function bindButtons(){
+    const map = new Map([
+      ['btnStart', startQuiz], ['btnStart2', startQuiz],
+      ['btnEnviar', ()=>{
+        const blanks = unansweredCount();
+        if(!graded){
+          if(blanks>0){
+            const ok = confirm(`Aún tienes ${blanks} pregunta(s) sin responder. ¿Deseas enviar de todos modos?`);
+            if(!ok) return;
+          }
+          grade(false);
+        }
+      }], ['btnEnviar2', ()=>{document.getElementById('btnEnviar').click();}],
+      ['btnResaltar', ()=>{markUnanswered(); alert('Se resaltaron en el mapa las preguntas sin responder.');}],
+      ['btnResaltar2', ()=>{document.getElementById('btnResaltar').click();}],
+      ['btnReiniciar', restart], ['btnReiniciar2', restart],
+      ['btnImprimir', printPage], ['btnImprimir2', printPage],
+      ['btnDescargar', downloadReport], ['btnDescargar2', downloadReport]
+    ]);
+    map.forEach((fn, id) => {
+      const el = document.getElementById(id);
+      if(el) el.addEventListener('click', fn);
+    });
+
+    // Escucha de cambios para actualizar mapa/summary
+    document.addEventListener('change', (ev)=>{
+      if(ev.target && ev.target.matches('input[type="radio"]')){
+        markUnanswered(); updateSummary();
+      }
+    });
+  }
+
+  // Inicialización
+  (function init(){
+    bindButtons();
+    setButtons(false); // hasta que presione "Comenzar"
+  })();
+  </script>
+</body>
+</html>
