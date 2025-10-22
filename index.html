@@ -96,9 +96,6 @@
       <aside class="panel">
         <h3 style="margin-top:0">Mapa de preguntas</h3>
         <div id="mapa" class="mapa" aria-live="polite"></div>
-        
-        
-        </div>
       </aside>
 
       <section id="stage" class="qcard" aria-live="polite" style="min-height:300px"></section>
@@ -319,9 +316,12 @@
   }
 
   function renderSummary(){
+    const el = document.getElementById('summary');
+    if(!el) return;
     const done = QUESTIONS.filter(q=>q.userChoice!==null).length;
     const graded = QUESTIONS.filter(q=>q.isGraded).length;
-    document.getElementById('summary').innerHTML = `${done}/${QUESTIONS.length} respondidas · ${graded} revisadas`;
+    el.innerHTML = `${done}/${QUESTIONS.length} respondidas · ${graded} revisadas`;
+  }/${QUESTIONS.length} respondidas · ${graded} revisadas`;
   }
 
   function renderStage(){
@@ -455,41 +455,8 @@
         if(sel!==null){ QUESTIONS[current].userChoice = sel; renderSummary(); }
       }
     });
-  });
-    document.getElementById('btnReiniciar').addEventListener('click', ()=>{ SFX.click(); restart(); });
-    document.getElementById('btnPrev').addEventListener('click', ()=>{ SFX.click(); goTo(current-1); });
-    document.getElementById('btnNext').addEventListener('click', ()=>{ SFX.click(); goTo(current+1); });
-    document.getElementById('btnRevisar').addEventListener('click', ()=>{ revisarActual(); });
-    document.getElementById('btnCloseModal').addEventListener('click', ()=>{ SFX.click(); hideResultsModal(); });
-
-    wireSfx();
-
-    document.addEventListener('change', (ev)=>{
-      if(ev.target && ev.target.matches('input[type="radio"]')){
-        const sel = getSelected();
-        if(sel!==null){ QUESTIONS[current].userChoice = sel; renderSummary(); }
-      }
-    });
 
     setButtons(true);
-  });
-    document.getElementById('btnEnviar').addEventListener('click', ()=>{ gradeAll(); });
-    document.getElementById('btnReiniciar').addEventListener('click', ()=>{ SFX.click(); restart(); });
-    document.getElementById('btnPrev').addEventListener('click', ()=>{ SFX.click(); goTo(current-1); });
-    document.getElementById('btnNext').addEventListener('click', ()=>{ SFX.click(); goTo(current+1); });
-    document.getElementById('btnRevisar').addEventListener('click', ()=>{ revisarActual(); });
-    document.getElementById('btnCloseModal').addEventListener('click', ()=>{ SFX.click(); hideResultsModal(); });
-
-    wireSfx();
-
-    document.addEventListener('change', (ev)=>{
-      if(ev.target && ev.target.matches('input[type="radio"]')){
-        const sel = getSelected();
-        if(sel!==null){ QUESTIONS[current].userChoice = sel; renderSummary(); }
-      }
-    });
-
-    setButtons(false);
   }
 
   // init
