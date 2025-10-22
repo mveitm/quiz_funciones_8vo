@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Quiz: Funciones Lineales y Afines (30 min)</title>
+  <title>Quiz: Funciones Lineales y Afines</title>
   <style>
     :root{
       --bg:#0b1020; --panel:#11182e; --muted:#7f8db2; --text:#f2f5ff; --accent:#4ea1ff; --warn:#ffcc66; --error:#ff6682; --ok:#53f29f; --chip:#1b2544;
@@ -17,7 +17,6 @@
     .wrap{max-width:980px; margin:0 auto; padding:12px 16px}
     .title{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
     .badge{font-size:.8rem; padding:4px 10px; border-radius:999px; background:var(--chip); color:var(--muted)}
-    .timer{margin-left:auto; font-weight:700; letter-spacing:.5px; font-variant-numeric:tabular-nums}
     .btns{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
     button{background:var(--accent); color:#041226; border:0; padding:10px 14px; border-radius:12px; font-weight:700; cursor:pointer}
     button.secondary{background:#25335d; color:var(--text)}
@@ -62,7 +61,14 @@
     .footer-actions{position:fixed; bottom:0; left:0; right:0; background:linear-gradient(180deg, rgba(17,24,46,.1), rgba(17,24,46,.9)); backdrop-filter: blur(6px); border-top:1px solid rgba(255,255,255,.08)}
     .footer-actions .wrap{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
 
-    @media print{ header, .footer-actions, .intro{display:none} body{background:#fff; color:#000} .panel, .qcard{background:#fff; color:#000; border-color:#888} .chip{border:1px solid #000} }
+    /* Modal */
+    .modal-ov{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.6); z-index:50}
+    .modal{background:var(--panel); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:20px; max-width:420px; width:92%}
+    .modal h3{margin:0 0 10px 0}
+    .stat{display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed rgba(255,255,255,.15)}
+    .stat:last-child{border-bottom:0}
+
+    @media print{ header, .footer-actions, .intro, .modal-ov{display:none} body{background:#fff; color:#000} .panel, .qcard{background:#fff; color:#000; border-color:#888} .chip{border:1px solid #000} }
   </style>
 </head>
 <body>
@@ -73,13 +79,12 @@
           <div class="badge">PAES · 8°–III° · Funciones</div>
           <h1 style="margin:.2rem 0 0">Quiz: Funciones Lineales y Afines</h1>
         </div>
-        <div class="timer" id="timer">30:00</div>
       </div>
       <div class="btns">
         <button id="btnStart">Comenzar</button>
-        <button class="warn" id="btnEnviar">Enviar (calificar todo)</button>
-        <button class="ghost" id="btnReiniciar">Reiniciar</button>
-        <span id="scoreChip" class="badge" aria-live="polite">Puntaje: —</span>
+        <button class="warn" id="btnEnviar">Resultados</button>
+        <button id="btnReiniciar">Reiniciar</button>
+        <span id="scoreChip" class="badge solid" aria-live="polite">Puntaje: —</span>
       </div>
     </div>
   </header>
@@ -88,12 +93,12 @@
     <section class="intro panel">
       <h2>Instrucciones</h2>
       <p>
-        Dispones de <strong>30 minutos</strong>. Ahora el quiz entrega <strong>feedback inmediato por pregunta</strong> al presionar <em>Revisar</em>, y al presionar <em>Enviar</em> se califica todo lo pendiente (las no respondidas cuentan como incorrectas). No hay reporte final ni impresión.
+        Feedback inmediato por pregunta al pulsar <em>Revisar</em>. El botón <strong>Resultados</strong> califica todo lo pendiente (lo no respondido cuenta como incorrecto) y muestra un resumen.
       </p>
       <ul>
         <li>Las funciones cambian en cada intento: pendientes e interceptos se generan aleatoriamente cuando corresponde.</li>
-        <li>Vista de <strong>una sola pregunta</strong> a la vez para evitar scroll largo. Usa el mapa numérico para saltar.</li>
-        <li>Todos los clicks y resultados reproducen sonidos (diferentes para click, selección, correcto e incorrecto).</li>
+        <li>Vista de una sola pregunta a la vez. Usa el mapa numérico para saltar.</li>
+        <li>Todos los clicks y resultados reproducen sonidos diferenciados.</li>
       </ul>
     </section>
 
@@ -121,11 +126,21 @@
     </div>
   </div>
 
+  <!-- Modal resumen -->
+  <div id="modalOv" class="modal-ov" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <h3 id="modalTitle">Resumen de resultados</h3>
+      <div id="modalBody"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:14px">
+        <button id="btnCloseModal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
   /*********************************
    * Parámetros y utilidades
    *********************************/
-  const DURATION_MIN = 30; // minutos
   const RNG = {
     pick: arr => arr[Math.floor(Math.random()*arr.length)],
     randStep(min, max, step){ const n = Math.floor((max-min)/step); return min + step*Math.floor(Math.random()*(n+1)); }
@@ -161,9 +176,8 @@
     incorrect: ()=> seq([{freq:220,dur:.15,type:'sawtooth',gain:.07},{freq:180,dur:.18,delay:.12,type:'sawtooth',gain:.06}])
   };
 
-  // Reproducir sonido en todos los botones y radios
   function wireSfx(){
-    document.querySelectorAll('button').forEach(b=> b.addEventListener('click', e=>{ SFX.click(); }));
+    document.querySelectorAll('button').forEach(b=> b.addEventListener('click', ()=>{ SFX.click(); }));
     document.addEventListener('change', (ev)=>{ if(ev.target && ev.target.matches('input[type="radio"]')) SFX.select(); });
   }
 
@@ -171,20 +185,20 @@
    * Generadores de preguntas dinámicas (4 contextos × 4 habilidades)
    *********************************/
   function genTaxi(){
-    const m = RNG.pick([300,350,400,450,500]); // $/km
-    const b = RNG.pick([400,500,600,700,800,900,1000,1100,1200]); // bajada
+    const m = RNG.pick([300,350,400,450,500]);
+    const b = RNG.pick([400,500,600,700,800,900,1000,1100,1200]);
     const x = RNG.pick([5,8,10,12,15]);
     const f = (xx)=> m*xx + b;
     return [
       { id:`TX-1-${m}-${b}`, context:'Taxi', skill:'Modelo',
         stem:`Un taxi cobra ${fmtMoney(b)} de bajada y ${fmtMoney(m)} por kilómetro. ¿Cuál es el modelo del costo total f(x)?`,
         choices:[ `f(x) = ${m}x + ${b}`, `f(x) = ${b}x + ${m}`, `f(x) = ${m}x`, `f(x) = ${b} + ${m}/x` ], correct:0,
-        explanation:`La pendiente es el costo por km (${fmtMoney(m)}) y el intercepto la bajada (${fmtMoney(b)}): f(x) = ${m}x + ${b}.`
+        explanation:`Pendiente = ${fmtMoney(m)} por km; intercepto = ${fmtMoney(b)}.`
       },
       { id:`TX-2-${m}-${b}`, context:'Taxi', skill:'Tipo',
         stem:`Para f(x) = ${m}x + ${b}, el tipo de función es…`,
         choices:[ 'Lineal (pasa por el origen)', 'Afín (no pasa por el origen)', 'Constante', 'Cuadrática' ], correct:1,
-        explanation:`Tiene término independiente ${fmtMoney(b)} ≠ 0, por eso es afín.`
+        explanation:`Tiene término independiente ${fmtMoney(b)} ≠ 0; es afín.`
       },
       { id:`TX-3-${m}-${b}-${x}`, context:'Taxi', skill:'Cálculo',
         stem:`¿Cuánto cuesta un viaje de ${x} km si f(x) = ${m}x + ${b}?`,
@@ -194,13 +208,13 @@
       { id:`TX-4-${m}-${b}`, context:'Taxi', skill:'Parámetros',
         stem:`En f(x) = ${m}x + ${b}, ¿cuál es (pendiente; intercepto)?`,
         choices:[ `Pendiente ${m}; Intercepto ${b}`, `Pendiente ${b}; Intercepto ${m}`, `Pendiente ${m}; Intercepto 0`, `Pendiente 0; Intercepto ${b}` ], correct:0,
-        explanation:`Pendiente = coeficiente de x = ${m}; Intercepto = término independiente = ${b}.`
+        explanation:`Pendiente = ${m}; Intercepto = ${b}.`
       }
     ];
   }
 
   function genBencina(){
-    const r = RNG.pick([12,13,14,15,16,18]); // km/L
+    const r = RNG.pick([12,13,14,15,16,18]);
     const L = RNG.pick([10,20,30,40]);
     return [
       { id:`BK-1-${r}`, context:'Bencina', skill:'Modelo',
@@ -211,7 +225,7 @@
       { id:`BK-2-${r}`, context:'Bencina', skill:'Tipo',
         stem:`La función k(ℓ) = ${r}ℓ es…`,
         choices:[ 'Lineal (proporcional, pasa por el origen)', 'Afín (no pasa por el origen)', 'Constante', 'Cuadrática' ], correct:0,
-        explanation:`Es de la forma m·x con intercepto 0; por tanto, lineal/proporcional.`
+        explanation:`Es de la forma m·x con intercepto 0; por tanto, lineal.`
       },
       { id:`BK-3-${r}-${L}`, context:'Bencina', skill:'Cálculo',
         stem:`¿Cuántos km recorre con ${L} L si k(ℓ) = ${r}ℓ?`,
@@ -227,20 +241,20 @@
   }
 
   function genMaquina(){
-    const c = RNG.randStep(1000, 5000, 500); // variable
-    const F = RNG.randStep(30000, 80000, 5000); // fijo
+    const c = RNG.randStep(1000, 5000, 500);
+    const F = RNG.randStep(30000, 80000, 5000);
     const x = RNG.pick([20,50,100,200]);
     const C = (xx)=> c*xx + F;
     return [
       { id:`MA-1-${c}-${F}`, context:'Máquina', skill:'Modelo',
         stem:`Una máquina tiene costo fijo de ${fmtMoney(F)} más ${fmtMoney(c)} por unidad. ¿Cuál es el costo total C(x)?`,
         choices:[ `C(x) = ${c}x + ${F}`, `C(x) = ${c}x`, `C(x) = ${F}x + ${c}`, `C(x) = ${F} − ${c}x` ], correct:0,
-        explanation:`Variable ${fmtMoney(c)} por unidad (pendiente) y fijo ${fmtMoney(F)} (intercepto).`
+        explanation:`Variable ${fmtMoney(c)} por unidad y fijo ${fmtMoney(F)}.`
       },
       { id:`MA-2-${c}-${F}`, context:'Máquina', skill:'Tipo',
         stem:`Para C(x) = ${c}x + ${F}, la función es…`,
         choices:[ 'Afín (no pasa por el origen)', 'Lineal (pasa por el origen)', 'Constante', 'Exponencial' ], correct:0,
-        explanation:`Tiene término independiente ${fmtMoney(F)} ≠ 0; es afín.`
+        explanation:`Tiene término independiente ${fmtMoney(F)} ≠ 0.`
       },
       { id:`MA-3-${c}-${F}-${x}`, context:'Máquina', skill:'Cálculo',
         stem:`¿Cuál es el costo de producir ${x} unidades si C(x) = ${c}x + ${F}?`,
@@ -256,20 +270,20 @@
   }
 
   function genVendedor(){
-    const p = RNG.randStep(300, 900, 50); // comisión
-    const B = RNG.randStep(50000, 120000, 10000); // base
+    const p = RNG.randStep(300, 900, 50);
+    const B = RNG.randStep(50000, 120000, 10000);
     const x = RNG.pick([100,200,400]);
     const f = (xx)=> p*xx + B;
     return [
       { id:`VE-1-${p}-${B}`, context:'Vendedor', skill:'Modelo',
         stem:`Un vendedor recibe sueldo base de ${fmtMoney(B)} más ${fmtMoney(p)} por libro. ¿Cuál es su ingreso f(x)?`,
         choices:[ `f(x) = ${p}x + ${B}`, `f(x) = ${B}x + ${p}`, `f(x) = ${p}x`, `f(x) = ${B} − ${p}x` ], correct:0,
-        explanation:`Comisión (pendiente) ${fmtMoney(p)} por libro y base (intercepto) ${fmtMoney(B)}.`
+        explanation:`Comisión ${fmtMoney(p)} (pendiente) y base ${fmtMoney(B)} (intercepto).`
       },
       { id:`VE-2-${p}-${B}`, context:'Vendedor', skill:'Tipo',
         stem:`Según f(x) = ${p}x + ${B}, la función es…`,
         choices:[ 'Afín (no pasa por el origen)', 'Lineal (pasa por el origen)', 'Constante', 'Logarítmica' ], correct:0,
-        explanation:`Tiene término independiente ${fmtMoney(B)} ≠ 0; es afín.`
+        explanation:`Tiene término independiente ${fmtMoney(B)} ≠ 0.`
       },
       { id:`VE-3-${p}-${B}-${x}`, context:'Vendedor', skill:'Cálculo',
         stem:`¿Cuánto ganará si vende ${x} libros? Usa f(x) = ${p}x + ${B}.`,
@@ -286,26 +300,21 @@
 
   function buildBank(){
     const bank = [].concat(genTaxi(), genBencina(), genMaquina(), genVendedor());
-    // normalizar a objetos con estructura choices [{text,correct}]
-    return bank.map(q=>{
-      const choices = q.choices.map((t,i)=>({text:t, correct: i===q.correct}));
-      return {...q, choices};
-    });
+    return bank.map(q=>{ const choices = q.choices.map((t,i)=>({text:t, correct: i===q.correct})); return {...q, choices}; });
   }
 
   /*********************************
    * Estado y render
    *********************************/
   let QUESTIONS = [];
-  let startTime = null; let timerId = null; let remaining = DURATION_MIN*60; let gradedAll = false;
-  let current = 0; // índice actual
+  let gradedAll = false;
+  let current = 0;
 
   function shuffle(arr){ const a = arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
   function deepCopy(o){ return JSON.parse(JSON.stringify(o)); }
 
   function seedQuiz(){
     QUESTIONS = shuffle(buildBank().map(q=> ({...deepCopy(q), userChoice:null, isGraded:false, isCorrect:false })));
-    // barajar alternativas por pregunta
     QUESTIONS.forEach(q=>{ q.choices = shuffle(q.choices); });
   }
 
@@ -334,8 +343,8 @@
     stage.innerHTML = '';
 
     const head = document.createElement('div'); head.className='qhead';
-    head.innerHTML = `<div class="qnum">Pregunta ${current+1} de ${QUESTIONS.length}</div>`+
-                      `<div class="qctx"><span class="ctx">${q.context}</span><span class="skill">${q.skill}</span></div>`;
+    head.innerHTML = `<div class=\"qnum\">Pregunta ${current+1} de ${QUESTIONS.length}</div>`+
+                      `<div class=\"qctx\"><span class=\"ctx\">${q.context}</span><span class=\"skill\">${q.skill}</span></div>`;
     stage.appendChild(head);
 
     const stem = document.createElement('div'); stem.className='stem'; stem.textContent = q.stem; stage.appendChild(stem);
@@ -345,22 +354,21 @@
       const id = `q_${current}_opt_${cidx}`;
       const row = document.createElement('label'); row.className = 'choice'; row.setAttribute('for', id);
       const letter = String.fromCharCode(65 + cidx);
-      row.innerHTML = `<span class="letter">${letter}</span>`+
-                      `<input type="radio" id="${id}" name="q_${current}" value="${cidx}" ${q.isGraded? 'disabled':''} ${q.userChoice===cidx? 'checked':''}/>`+
-                      `<div class="ctext">${c.text}</div>`;
+      row.innerHTML = `<span class=\"letter\">${letter}</span>`+
+                      `<input type=\"radio\" id=\"${id}\" name=\"q_${current}\" value=\"${cidx}\" ${q.isGraded? 'disabled':''} ${q.userChoice===cidx? 'checked':''}/>`+
+                      `<div class=\"ctext\">${c.text}</div>`;
       choices.appendChild(row);
     });
     stage.appendChild(choices);
 
-    // feedback
     if(q.isGraded){
       const box = document.createElement('div'); box.className = 'feedback ' + (q.isCorrect? 'correct':'incorrect');
       const correctText = q.choices.find(c=>c.correct).text;
       const userText = q.userChoice!==null? q.choices[q.userChoice].text : '<em>sin responder</em>';
       box.innerHTML = `<strong>${q.isCorrect? '¡Correcto!':'Incorrecto'}</strong><br>`+
-                      `<span class="muted">Tu respuesta:</span> ${userText}<br>`+
-                      `<span class="muted">Correcta:</span> ${correctText}<br>`+
-                      `<div style="margin-top:6px">${q.explanation}</div>`;
+                      `<span class=\"muted\">Tu respuesta:</span> ${userText}<br>`+
+                      `<span class=\"muted\">Correcta:</span> ${correctText}<br>`+
+                      `<div style=\"margin-top:6px\">${q.explanation}</div>`;
       stage.appendChild(box);
     }
 
@@ -369,11 +377,7 @@
   }
 
   function goTo(idx){ current = Math.max(0, Math.min(QUESTIONS.length-1, idx)); renderStage(); }
-
-  function getSelected(){
-    const checked = document.querySelector(`input[name="q_${current}"]:checked`);
-    return checked? parseInt(checked.value,10) : null;
-  }
+  function getSelected(){ const checked = document.querySelector(`input[name=\"q_${current}\"]:checked`); return checked? parseInt(checked.value,10) : null; }
 
   function revisarActual(){
     const q = QUESTIONS[current];
@@ -388,12 +392,10 @@
   }
 
   function gradeAll(){
-    QUESTIONS.forEach((q, idx)=>{
+    QUESTIONS.forEach((q)=>{
       if(!q.isGraded){
-        // si no marcó nada, se cuenta incorrecta y se muestra corrección
-        q.userChoice = (q.userChoice===null? null : q.userChoice);
         q.isGraded = true;
-        const sel = q.userChoice;
+        const sel = (q.userChoice===null? null : q.userChoice);
         q.isCorrect = (sel!==null) && !!q.choices[sel]?.correct;
       }
     });
@@ -401,29 +403,40 @@
     SFX.click();
     updateScoreChip();
     renderStage();
+    showResultsModal();
   }
 
   function score(){ return QUESTIONS.reduce((acc,q)=> acc + (q.isCorrect?1:0), 0); }
   function updateScoreChip(){
     const s = score(); const total = QUESTIONS.length; const pct = Math.round(100*s/total);
-    document.getElementById('scoreChip').textContent = `Puntaje: ${s}/${total} (${pct}%)`;
+    const chip = document.getElementById('scoreChip');
+    chip.textContent = `Puntaje: ${s}/${total} (${pct}%)`;
+    chip.classList.add('solid');
   }
 
   /*********************************
-   * Timer
+   * Modal de resultados
    *********************************/
-  function startTimer(){
-    clearInterval(timerId); remaining = DURATION_MIN*60; startTime = new Date(); updateTimerUI();
-    timerId = setInterval(()=>{ remaining--; updateTimerUI(); if(remaining<=0){ clearInterval(timerId); gradeAll(); alert('Tiempo terminado: se calificó todo.'); } },1000);
+  function showResultsModal(){
+    const total = QUESTIONS.length;
+    const correct = score();
+    const incorrect = total - correct;
+    const pctOK = Math.round(100*correct/total);
+    const pctBad = 100 - pctOK;
+    const body = document.getElementById('modalBody');
+    body.innerHTML = `
+      <div class=\"stat\"><strong>Correctas</strong><span>${correct}/${total} (${pctOK}%)</span></div>
+      <div class=\"stat\"><strong>Incorrectas</strong><span>${incorrect}/${total} (${pctBad}%)</span></div>
+    `;
+    document.getElementById('modalOv').style.display = 'flex';
   }
-  function secondsToMMSS(s){ const m = Math.floor(s/60).toString().padStart(2,'0'); const ss = Math.floor(s%60).toString().padStart(2,'0'); return `${m}:${ss}`; }
-  function updateTimerUI(){ document.getElementById('timer').textContent = secondsToMMSS(Math.max(0, remaining)); }
+  function hideResultsModal(){ document.getElementById('modalOv').style.display = 'none'; }
 
   /*********************************
    * Controles
    *********************************/
-  function startQuiz(){ gradedAll=false; seedQuiz(); current=0; renderStage(); startTimer(); setButtons(true); updateScoreChip(); }
-  function restart(){ clearInterval(timerId); document.getElementById('stage').innerHTML=''; document.getElementById('mapa').innerHTML=''; document.getElementById('summary').textContent='Comienza el quiz para ver el estado.'; document.getElementById('timer').textContent = `${DURATION_MIN.toString().padStart(2,'0')}:00`; document.getElementById('scoreChip').textContent='Puntaje: —'; setButtons(false); QUESTIONS=[]; }
+  function startQuiz(){ gradedAll=false; seedQuiz(); current=0; renderStage(); setButtons(true); updateScoreChip(); }
+  function restart(){ document.getElementById('stage').innerHTML=''; document.getElementById('mapa').innerHTML=''; document.getElementById('summary').textContent='Comienza el quiz para ver el estado.'; document.getElementById('scoreChip').textContent='Puntaje: —'; setButtons(false); QUESTIONS=[]; hideResultsModal(); }
   function setButtons(active){ ['btnEnviar','btnReiniciar','btnPrev','btnRevisar','btnNext'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=!active; }); }
 
   function bind(){
@@ -433,11 +446,10 @@
     document.getElementById('btnPrev').addEventListener('click', ()=>{ SFX.click(); goTo(current-1); });
     document.getElementById('btnNext').addEventListener('click', ()=>{ SFX.click(); goTo(current+1); });
     document.getElementById('btnRevisar').addEventListener('click', ()=>{ revisarActual(); });
+    document.getElementById('btnCloseModal').addEventListener('click', ()=>{ SFX.click(); hideResultsModal(); });
 
-    // Sonidos globales
     wireSfx();
 
-    // Actualizar estado al cambiar selección
     document.addEventListener('change', (ev)=>{
       if(ev.target && ev.target.matches('input[type="radio"]')){
         const sel = getSelected();
@@ -453,4 +465,3 @@
   </script>
 </body>
 </html>
-
