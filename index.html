@@ -96,10 +96,8 @@
       <aside class="panel">
         <h3 style="margin-top:0">Mapa de preguntas</h3>
         <div id="mapa" class="mapa" aria-live="polite"></div>
-        <p class="muted" style="margin-top:10px">Toca un número para saltar. Verde: correcta · Rojo: incorrecta.</p>
-        <div class="panel" style="margin-top:12px">
-          <h3 style="margin-top:0">Estado</h3>
-          <div id="summary" class="muted">Comienza el quiz para ver el estado.</div>
+        
+        
         </div>
       </aside>
 
@@ -109,7 +107,6 @@
 
   <div class="footer-actions">
     <div class="wrap">
-      <span class="muted">Navegación:</span>
       <button id="btnPrev" class="secondary">Anterior</button>
       <button id="btnRevisar" class="warn">Revisar</button>
       <button id="btnNext">Siguiente</button>
@@ -475,7 +472,7 @@
   }
 
   // init
-  (function init(){ bind(); startQuiz(); })();
+  (function init(){ bind(); startQuiz(); document.addEventListener('DOMContentLoaded', ()=>{ try{ startQuiz(); }catch(e){} }); })();
   </script>
 </body>
 </html>
