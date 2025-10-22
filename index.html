@@ -434,7 +434,28 @@
   function setButtons(active){ ['btnEnviar','btnReiniciar','btnPrev','btnRevisar','btnNext'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=!active; }); }
 
   function bind(){
-    document.getElementById('btnEnviar').addEventListener('click', ()=>{ gradeAll(); });
+    // Delegación robusta para asegurar funcionamiento aunque el DOM cambie
+    const on = (selector, evt, fn) => {
+      document.addEventListener(evt, (e)=>{ const el = e.target.closest(selector); if(el){ fn(e); } });
+    };
+    on('#btnEnviar','click', ()=>{ gradeAll(); });
+    on('#btnReiniciar','click', ()=>{ SFX.click(); restart(); });
+    on('#btnPrev','click', ()=>{ SFX.click(); goTo(current-1); });
+    on('#btnNext','click', ()=>{ SFX.click(); goTo(current+1); });
+    on('#btnRevisar','click', ()=>{ revisarActual(); });
+    on('#btnCloseModal','click', ()=>{ SFX.click(); hideResultsModal(); });
+
+    // Sonidos de selección
+    wireSfx();
+
+    // Guardar selección de alternativa
+    document.addEventListener('change', (ev)=>{
+      if(ev.target && ev.target.matches('input[type="radio"]')){
+        const sel = getSelected();
+        if(sel!==null){ QUESTIONS[current].userChoice = sel; renderSummary(); }
+      }
+    });
+  });
     document.getElementById('btnReiniciar').addEventListener('click', ()=>{ SFX.click(); restart(); });
     document.getElementById('btnPrev').addEventListener('click', ()=>{ SFX.click(); goTo(current-1); });
     document.getElementById('btnNext').addEventListener('click', ()=>{ SFX.click(); goTo(current+1); });
@@ -472,7 +493,7 @@
   }
 
   // init
-  (function init(){ bind(); startQuiz(); document.addEventListener('DOMContentLoaded', ()=>{ try{ startQuiz(); }catch(e){} }); })();
+  document.addEventListener('DOMContentLoaded', function(){ bind(); startQuiz(); setButtons(true); });
   </script>
 </body>
 </html>
