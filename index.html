@@ -8,7 +8,13 @@
     :root{ --bg:#0b1020; --panel:#11182e; --muted:#7f8db2; --text:#f2f5ff; --accent:#4ea1ff; --warn:#ffcc66; --error:#ff6682; --ok:#53f29f; --chip:#1b2544; }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial; background:radial-gradient(1200px 800px at 20% -10%, #1a2453, transparent 60%), radial-gradient(1000px 700px at 120% 10%, #103a5a, transparent 40%), var(--bg); color:var(--text); line-height:1.4; }
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+      background: radial-gradient(1200px 800px at 20% -10%, #1a2453, transparent 60%),
+                  radial-gradient(1000px 700px at 120% 10%, #103a5a, transparent 40%),
+                  var(--bg);
+      color:var(--text); line-height:1.4;
+    }
     header{ position:sticky; top:0; z-index:5; backdrop-filter:saturate(1.1) blur(6px); background:linear-gradient(180deg, rgba(17,24,46,.9), rgba(17,24,46,.7)); border-bottom:1px solid rgba(255,255,255,.06) }
     .wrap{max-width:980px; margin:0 auto; padding:12px 16px}
     .title{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
@@ -19,7 +25,7 @@
     button.warn{background:var(--warn); color:#221b00}
     button:disabled{opacity:.55; cursor:not-allowed}
 
-    main{max-width:980px; margin:18px auto; padding:0 16px 90px}
+    main{max-width:980px; margin:18px auto; padding:0 16px 96px}
     .panel{background:rgba(17,24,46,.7); border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.25)}
 
     .grid{display:grid; gap:16px; grid-template-columns:1fr}
@@ -46,7 +52,7 @@
 
     .feedback{margin-top:10px; padding:10px; border-radius:12px; border:1px solid rgba(255,255,255,.08)}
     .feedback.correct{background:rgba(83,242,159,.15); border-color:rgba(83,242,159,.6); color:#bcffe0}
-    .feedback.incorrect{background:rgba(255,102,130,.15); border-color:rgba(255,255,130,.6); color:#ffd5de}
+    .feedback.incorrect{background:rgba(255,102,130,.15); border-color:rgba(255,102,130,.6); color:#ffd5de}
 
     .footer-actions{position:fixed; bottom:0; left:0; right:0; background:linear-gradient(180deg, rgba(17,24,46,.1), rgba(17,24,46,.9)); backdrop-filter: blur(6px); border-top:1px solid rgba(255,255,255,.08); z-index:1000}
     .footer-actions .wrap{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
@@ -108,7 +114,7 @@
   </div>
 
   <script>
-  // ==================== Utilidades y sonidos ====================
+  // ---------- Utilidades y sonidos ----------
   const RNG = { pick: arr => arr[Math.floor(Math.random()*arr.length)], randStep(min,max,step){ const n=Math.floor((max-min)/step); return min+step*Math.floor(Math.random()*(n+1)); } };
   const fmtMoney = n => `$${n.toLocaleString('es-CL')}`;
 
@@ -118,7 +124,7 @@
   const SFX = { click: ()=> tone({freq:260, dur:0.06, type:'triangle'}), select: ()=> tone({freq:330, dur:0.05, type:'square'}), correct: ()=> seq([{freq:620,dur:.08},{freq:740,dur:.08,delay:.08},{freq:880,dur:.12,delay:.16,type:'triangle',gain:.07}]), incorrect: ()=> seq([{freq:220,dur:.15,type:'sawtooth',gain:.07},{freq:180,dur:.18,delay:.12,type:'sawtooth',gain:.06}]) };
   function wireSfx(){ document.addEventListener('click', e=>{ if(e.target.matches('button')) SFX.click(); }); document.addEventListener('change', e=>{ if(e.target.matches('input[type="radio"]')) SFX.select(); }); }
 
-  // ==================== Generadores de preguntas dinámicas ====================
+  // ---------- Generadores ----------
   function genTaxi(){ const m=RNG.pick([300,350,400,450,500]); const b=RNG.pick([400,500,600,700,800,900,1000,1100,1200]); const x=RNG.pick([5,8,10,12,15]); const f=(xx)=> m*xx+b; return [
     { id:`TX-1-${m}-${b}`, context:'Taxi', skill:'Modelo', stem:`Un taxi cobra ${fmtMoney(b)} de bajada y ${fmtMoney(m)} por kilómetro. ¿Cuál es el modelo del costo total f(x)?`, choices:[ `f(x) = ${m}x + ${b}`, `f(x) = ${b}x + ${m}`, `f(x) = ${m}x`, `f(x) = ${b} + ${m}/x` ], correct:0, explanation:`Pendiente = ${fmtMoney(m)} por km; intercepto = ${fmtMoney(b)}.` },
     { id:`TX-2-${m}-${b}`, context:'Taxi', skill:'Tipo', stem:`Para f(x) = ${m}x + ${b}, el tipo de función es…`, choices:[ 'Lineal (pasa por el origen)', 'Afín (no pasa por el origen)', 'Constante', 'Cuadrática' ], correct:1, explanation:`Tiene término independiente ${fmtMoney(b)} ≠ 0; es afín.` },
@@ -149,7 +155,7 @@
 
   function buildBank(){ return [...genTaxi(), ...genBencina(), ...genMaquina(), ...genVendedor()].map(q=> ({...q, choices: q.choices.map((t,i)=>({text:t, correct:i===q.correct}))})); }
 
-  // ==================== Estado y render ====================
+  // ---------- Estado y render ----------
   let QUESTIONS = []; let current = 0;
   function shuffle(a){ const b=a.slice(); for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]];} return b; }
   function deepCopy(o){ return JSON.parse(JSON.stringify(o)); }
@@ -158,9 +164,7 @@
 
   function renderMap(){ const map=document.getElementById('mapa'); map.innerHTML=''; QUESTIONS.forEach((q,idx)=>{ const chip=document.createElement('button'); chip.type='button'; chip.className='chip'; chip.id=`chip_${idx}`; chip.textContent=idx+1; if(q.isGraded){ chip.classList.add(q.isCorrect? 'correct':'incorrect'); } if(idx===current){ chip.classList.add('current'); } chip.addEventListener('click', ()=>{ SFX.click(); goTo(idx); }); map.appendChild(chip); }); }
 
-  function renderSummary(){ /* sin panel de resumen visible */ }
-
-  function renderStage(){ const q=QUESTIONS[current]; const stage=document.getElementById('stage'); stage.innerHTML=''; const head=document.createElement('div'); head.className='qhead'; head.innerHTML=`<div class="qnum">Pregunta ${current+1} de ${QUESTIONS.length}</div><div class="qctx"><span class="ctx">${q.context}</span><span class="skill">${q.skill}</span></div>`; stage.appendChild(head); const stem=document.createElement('div'); stem.className='stem'; stem.textContent=q.stem; stage.appendChild(stem); const choices=document.createElement('div'); choices.className='choices'; q.choices.forEach((c,cidx)=>{ const id=`q_${current}_opt_${cidx}`; const row=document.createElement('label'); row.className='choice'; row.setAttribute('for',id); const letter=String.fromCharCode(65+cidx); row.innerHTML=`<span class="letter">${letter}</span><input type="radio" id="${id}" name="q_${current}" value="${cidx}" ${q.isGraded?'disabled':''} ${q.userChoice===cidx?'checked':''}/><div class="ctext">${c.text}</div>`; choices.appendChild(row); }); stage.appendChild(choices); if(q.isGraded){ const box=document.createElement('div'); box.className='feedback '+(q.isCorrect?'correct':'incorrect'); const correctText=q.choices.find(c=>c.correct).text; const userText=q.userChoice!==null? q.choices[q.userChoice].text : '<em>sin responder</em>'; box.innerHTML=`<strong>${q.isCorrect? '¡Correcto!':'Incorrecto'}</strong><br><span class="muted">Tu respuesta:</span> ${userText}<br><span class="muted">Correcta:</span> ${correctText}<br><div style="margin-top:6px">${q.explanation}</div>`; stage.appendChild(box); } renderMap(); renderSummary(); }
+  function renderStage(){ const q=QUESTIONS[current]; const stage=document.getElementById('stage'); stage.innerHTML=''; const head=document.createElement('div'); head.className='qhead'; head.innerHTML=`<div class="qnum">Pregunta ${current+1} de ${QUESTIONS.length}</div><div class="qctx"><span class="ctx">${q.context}</span><span class="skill">${q.skill}</span></div>`; stage.appendChild(head); const stem=document.createElement('div'); stem.className='stem'; stem.textContent=q.stem; stage.appendChild(stem); const choices=document.createElement('div'); choices.className='choices'; q.choices.forEach((c,cidx)=>{ const id=`q_${current}_opt_${cidx}`; const row=document.createElement('label'); row.className='choice'; row.setAttribute('for',id); const letter=String.fromCharCode(65+cidx); row.innerHTML=`<span class="letter">${letter}</span><input type="radio" id="${id}" name="q_${current}" value="${cidx}" ${q.isGraded?'disabled':''} ${q.userChoice===cidx?'checked':''}/><div class="ctext">${c.text}</div>`; choices.appendChild(row); }); stage.appendChild(choices); if(q.isGraded){ const box=document.createElement('div'); box.className='feedback '+(q.isCorrect?'correct':'incorrect'); const correctText=q.choices.find(c=>c.correct).text; const userText=q.userChoice!==null? q.choices[q.userChoice].text : '<em>sin responder</em>'; box.innerHTML=`<strong>${q.isCorrect? '¡Correcto!':'Incorrecto'}</strong><br><span class="muted">Tu respuesta:</span> ${userText}<br><span class="muted">Correcta:</span> ${correctText}<br><div style="margin-top:6px">${q.explanation}</div>`; stage.appendChild(box); } renderMap(); }
 
   function goTo(idx){ current=Math.max(0, Math.min(QUESTIONS.length-1, idx)); renderStage(); }
   function getSelected(){ const checked=document.querySelector(`input[name="q_${current}"]:checked`); return checked? parseInt(checked.value,10) : null; }
@@ -171,22 +175,23 @@
   function score(){ return QUESTIONS.reduce((acc,q)=> acc + (q.isCorrect?1:0), 0); }
   function updateScoreChip(){ const s=score(); const total=QUESTIONS.length; const pct=Math.round(100*s/total); document.getElementById('scoreChip').textContent=`Puntaje: ${s}/${total} (${pct}%)`; }
 
-  // ==================== Modal ====================
+  // ---------- Modal ----------
   function showResultsModal(){ const total=QUESTIONS.length; const correct=score(); const incorrect=total-correct; const pctOK=Math.round(100*correct/total); const pctBad=100-pctOK; const body=document.getElementById('modalBody'); body.innerHTML=`<div class="stat"><strong>Correctas</strong><span>${correct}/${total} (${pctOK}%)</span></div><div class="stat"><strong>Incorrectas</strong><span>${incorrect}/${total} (${pctBad}%)</span></div>`; document.getElementById('modalOv').style.display='flex'; }
   function hideResultsModal(){ document.getElementById('modalOv').style.display='none'; }
 
-  // ==================== Controles ====================
+  // ---------- Controles ----------
   function startQuiz(){ seedQuiz(); current=0; renderStage(); updateScoreChip(); }
   function restart(){ hideResultsModal(); startQuiz(); }
   function setButtons(active){ ['btnEnviar','btnReiniciar','btnPrev','btnRevisar','btnNext','btnCloseModal'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=!active; }); }
 
   function bind(){
-    document.getElementById('btnEnviar').addEventListener('click', gradeAll);
-    document.getElementById('btnReiniciar').addEventListener('click', ()=>{ SFX.click(); restart(); });
-    document.getElementById('btnPrev').addEventListener('click', ()=>{ SFX.click(); goTo(current-1); });
-    document.getElementById('btnNext').addEventListener('click', ()=>{ SFX.click(); goTo(current+1); });
-    document.getElementById('btnRevisar').addEventListener('click', revisarActual);
-    document.getElementById('btnCloseModal').addEventListener('click', ()=>{ SFX.click(); hideResultsModal(); });
+    const byId = id => document.getElementById(id);
+    byId('btnEnviar')?.addEventListener('click', gradeAll);
+    byId('btnReiniciar')?.addEventListener('click', ()=>{ SFX.click(); restart(); });
+    byId('btnPrev')?.addEventListener('click', ()=>{ SFX.click(); goTo(current-1); });
+    byId('btnNext')?.addEventListener('click', ()=>{ SFX.click(); goTo(current+1); });
+    byId('btnRevisar')?.addEventListener('click', revisarActual);
+    byId('btnCloseModal')?.addEventListener('click', ()=>{ SFX.click(); hideResultsModal(); });
 
     wireSfx();
     document.addEventListener('change', (ev)=>{ if(ev.target && ev.target.matches('input[type="radio"]')){ const sel=getSelected(); if(sel!==null){ QUESTIONS[current].userChoice = sel; } } });
