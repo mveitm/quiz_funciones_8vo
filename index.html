@@ -8,7 +8,7 @@
     :root{ --bg:#0b1020; --panel:#11182e; --muted:#7f8db2; --text:#f2f5ff; --accent:#4ea1ff; --warn:#ffcc66; --error:#ff6682; --ok:#53f29f; --chip:#1b2544; }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica Neue,Arial; background: radial-gradient(1200px 800px at 20% -10%, #1a2453, transparent 60%), radial-gradient(1000px 700px at 120% 10%, #103a5a, transparent 40%), var(--bg); color:var(--text); line-height:1.4; }
+    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial; background: radial-gradient(1200px 800px at 20% -10%, #1a2453, transparent 60%), radial-gradient(1000px 700px at 120% 10%, #103a5a, transparent 40%), var(--bg); color:var(--text); line-height:1.4; }
     header{ position:sticky; top:0; z-index:5; backdrop-filter:saturate(1.1) blur(6px); background:linear-gradient(180deg, rgba(17,24,46,.9), rgba(17,24,46,.7)); border-bottom:1px solid rgba(255,255,255,.06) }
     .wrap{max-width:980px; margin:0 auto; padding:12px 16px}
     .title{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
@@ -212,8 +212,7 @@ const TEACHER_PHONE='+56961410052';
 const REPORT_ENDPOINT='';
 
 function buildReport(){ const total=QUESTIONS.length; const correct=score(); const incorrect=total-correct; const pct=Math.round(100*correct/total); const perQ=QUESTIONS.map((q,i)=>({ n:i+1, context:q.context, skill:q.skill, stem:q.stem, answer:q.userChoice!==null? q.choices[q.userChoice].text:null, correct:q.choices.find(c=>c.correct).text, isCorrect:q.isCorrect })); return { total, correct, incorrect, pct, perQ }; }
-function buildReportText(name){ const dt=new Date().toLocaleString('es-CL'); const r=buildReport(); const lines=[ 'Resultados Quiz - Funciones Lineales y Afines', 'Estudiante: '+(name||'(sin nombre)'), 'Fecha: '+dt, 'Puntaje: '+r.correct+'/'+r.total+' ('+r.pct+'%)', 'Correctas: '+r.correct+' | Incorrectas: '+r.incorrect, '', 'Detalle por pregunta:' ]; r.perQ.forEach(x=>{ lines.push(x.n+'. ['+x.context+'/'+x.skill+']'); lines.push('   Enunciado: '+x.stem); lines.push('   Respuesta: '+(x.answer||'—')); lines.push('   Correcta: '+x.correct); lines.push('   Resultado: '+(x.isCorrect?'CORRECTA':'INCORRECTA')); }); return lines.join('
-'); }
+function buildReportText(name){ const dt=new Date().toLocaleString('es-CL'); const r=buildReport(); const lines=[ 'Resultados Quiz - Funciones Lineales y Afines', 'Estudiante: '+(name||'(sin nombre)'), 'Fecha: '+dt, 'Puntaje: '+r.correct+'/'+r.total+' ('+r.pct+'%)', 'Correctas: '+r.correct+' | Incorrectas: '+r.incorrect, '', 'Detalle por pregunta:' ]; r.perQ.forEach(x=>{ lines.push(x.n+'. ['+x.context+'/'+x.skill+']'); lines.push('   Enunciado: '+x.stem); lines.push('   Respuesta: '+(x.answer||'—')); lines.push('   Correcta: '+x.correct); lines.push('   Resultado: '+(x.isCorrect?'CORRECTA':'INCORRECTA')); }); return lines.join('\n'); }
 
 function showResultsModal(){ const total=QUESTIONS.length; const correct=score(); const incorrect=total-correct; const pctOK=Math.round(100*correct/total); const pctBad=100-pctOK; const body=document.getElementById('modalBody'); body.innerHTML='<div class="stat"><strong>Correctas</strong><span>'+correct+'/'+total+' ('+pctOK+'%)</span></div><div class="stat"><strong>Incorrectas</strong><span>'+incorrect+'/'+total+' ('+pctBad+'%)</span></div>'; document.getElementById('modalOv').style.display='flex'; }
 function hideResultsModal(){ document.getElementById('modalOv').style.display='none'; }
@@ -242,7 +241,20 @@ function bind(){ document.getElementById('btnEnviar').addEventListener('click', 
   wireSfx();
 }
 
-document.addEventListener('DOMContentLoaded', ()=>{ bind(); startQuiz(); });
-</script>
+document.addEventListener('DOMContentLoaded', ()=>{ bind(); startQuiz(); runSelfTests(); });
+
+// ========= Tests ligeros (sanity checks) =========
+function runSelfTests(){
+  const results=[]; const fail=(m)=>{ console.error('[TEST FAIL]', m); results.push({ok:false, m}); };
+  const pass=(m)=>{ console.log('[TEST OK]', m); results.push({ok:true, m}); };
+  try{ if(typeof startQuiz!=="function") fail('startQuiz no existe'); else pass('startQuiz expuesta'); }catch(e){ fail('error comprobando startQuiz'); }
+  try{ if(!document.getElementById('btnEnviar')) fail('btnEnviar no existe'); else pass('btnEnviar presente'); }catch(e){ fail('error botones'); }
+  try{ if(!document.getElementById('stage')) fail('stage no existe'); else pass('stage presente'); }catch(e){ fail('error stage'); }
+  try{ if(!Array.isArray(QUESTIONS) || QUESTIONS.length===0) fail('QUESTIONS vacío tras start'); else pass('QUESTIONS con items'); }catch(e){ fail('error QUESTIONS'); }
+  try{ const s=document.getElementById('stage'); if(!s.querySelector('.choice')) fail('no hay alternativas renderizadas'); else pass('alternativas renderizadas'); }catch(e){ fail('error render'); }
+  try{ const txt=buildReportText('Prueba'); if(typeof txt!=="string" || !txt.includes('\n')) fail('buildReportText no retorna texto con \n'); else pass('buildReportText ok'); }catch(e){ fail('buildReportText lanzó error'); }
+  window.__QUIZ_TESTS__=results; // disponible en consola
+}
+  </script>
 </body>
 </html>
