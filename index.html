@@ -55,6 +55,13 @@
     .muted{opacity:.7}
 
     @media print{ header, .footer-actions{display:none} body{background:#fff; color:#000} .panel, .qcard{background:#fff; color:#000; border-color:#888} .chip{border:1px solid #000} }
+
+    /* Resumen centrado */
+    #summaryOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:2000}
+    #summaryCard{background:var(--panel);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;max-width:420px;box-shadow:0 12px 30px rgba(0,0,0,.35);text-align:center}
+    #summaryCard h2{margin:.2rem 0 8px}
+    #summaryCard .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+    #summaryClose{margin-top:10px}
   </style>
 </head>
 <body>
@@ -96,7 +103,17 @@
   'use strict';
   // ===== Debug ligero en pantalla (no bloqueante) =====
   let __DBG_BOX__ = null;
-  function __setDebug(msg){ try{ if(!__DBG_BOX__){ __DBG_BOX__=document.createElement('div'); __DBG_BOX__.id='debugBox'; __DBG_BOX__.style.cssText='position:fixed;right:8px;bottom:8px;background:#11182e;color:#9dc1ff;padding:8px 10px;border:1px solid rgba(255,255,255,.1);border-radius:10px;font:12px/1.2 system-ui;z-index:9999;max-width:60ch;'; document.body.appendChild(__DBG_BOX__); } __DBG_BOX__.textContent=String(msg); }catch(_){} }
+  function __setDebug(msg){
+    try{
+      if(!__DBG_BOX__){
+        __DBG_BOX__=document.createElement('div');
+        __DBG_BOX__.id='debugBox';
+        __DBG_BOX__.style.cssText='position:fixed;right:8px;bottom:8px;background:#11182e;color:#9dc1ff;padding:8px 10px;border:1px solid rgba(255,255,255,.1);border-radius:10px;font:12px/1.2 system-ui;z-index:9999;max-width:60ch;';
+        document.body.appendChild(__DBG_BOX__);
+      }
+      __DBG_BOX__.textContent=String(msg);
+    }catch(_){/* ignore */}
+  }
   window.addEventListener('error', (e)=>{ __setDebug('JS error: '+(e.message||e.error)); });
 
   // ===== Utilidades / sonidos =====
@@ -183,14 +200,47 @@
 
   function revisarActual(){ const q=QUESTIONS[current]; if(q.isGraded) return; const sel=getSelected(); q.userChoice=sel; q.isGraded=true; q.isCorrect=(sel!==null)&&!!q.choices[sel]&&!!q.choices[sel].correct; (q.isCorrect?SFX.correct:SFX.incorrect)(); renderStage(); }
 
-  function gradeAll(){ QUESTIONS.forEach(q=>{ if(!q.isGraded){ q.isGraded=true; const sel=q.userChoice; q.isCorrect=(sel!==null)&&!!q.choices[sel]&&!!q.choices[sel].correct; } }); renderStage(); updateScoreChip(); sendAutoReport(); }
+  function gradeAll(){
+    // Califica todo, muestra resumen y envía reporte
+    QUESTIONS.forEach(q=>{ if(!q.isGraded){ q.isGraded=true; const sel=q.userChoice; q.isCorrect=(sel!==null)&&!!q.choices[sel]&&!!q.choices[sel].correct; } });
+    renderStage();
+    updateScoreChip();
+    showSummary();
+    sendAutoReport();
+  }
+
   function score(){ return QUESTIONS.reduce((acc,q)=> acc+(q.isCorrect?1:0), 0); }
   function updateScoreChip(){ const s=score(); const total=QUESTIONS.length; const pct= total? Math.round(100*s/total) : 0; document.getElementById('scoreChip').textContent='Puntaje: '+s+'/'+total+' ('+pct+'%)'; }
 
   function buildReport(){ const total=QUESTIONS.length; const correct=score(); const incorrect=total-correct; const pct= total? Math.round(100*correct/total) : 0; const perQ=QUESTIONS.map((q,i)=>({ n:i+1, context:q.context, skill:q.skill, stem:q.stem, answer:q.userChoice!==null? q.choices[q.userChoice].text:null, correct:q.choices.find(c=>c.correct).text, isCorrect:q.isCorrect })); return { total, correct, incorrect, pct, perQ }; }
-  function buildReportText(){ const dt=new Date().toLocaleString('es-CL'); const r=buildReport(); const lines=[ 'Resultados Quiz - Funciones Lineales y Afines', 'Estudiante: (omitido)', 'Fecha: '+dt, 'Puntaje: '+r.correct+'/'+r.total+' ('+r.pct+'%)', 'Correctas: '+r.correct+' | Incorrectas: '+r.incorrect, '', 'Detalle por pregunta:' ]; r.perQ.forEach(x=>{ lines.push(x.n+'. ['+x.context+'/'+x.skill+']'); lines.push('   Enunciado: '+x.stem); lines.push('   Respuesta: '+(x.answer||'-')); lines.push('   Correcta: '+x.correct); lines.push('   Resultado: '+(x.isCorrect?'CORRECTA':'INCORRECTA')); }); return lines.join('\n'); }
+  function buildReportText(){ const dt=new Date().toLocaleString('es-CL'); const r=buildReport(); const lines=[ 'Resultados Quiz - Funciones Lineales y Afines', 'Estudiante: (omitido)', 'Fecha: '+dt, 'Puntaje: '+r.correct+'/'+r.total+' ('+r.pct+'%)', 'Correctas: '+r.correct+' | Incorrectas: '+r.incorrect, '', 'Detalle por pregunta:' ]; r.perQ.forEach(x=>{ lines.push(x.n+'. ['+x.context+'/'+x.skill+']'); lines.push('   Enunciado: '+x.stem); lines.push('   Respuesta: '+(x.answer||'-')); lines.push('   Correcta: '+x.correct); lines.push('   Resultado: '+(x.isCorrect?'CORRECTA':'INCORRECTA')); }); return lines.join('\\n'); }
 
-  async function sendAutoReport(){ try{ const bodyStr=JSON.stringify({ summaryText: buildReportText(), report: buildReport() }); if(navigator.sendBeacon){ const blob = new Blob([bodyStr], {type:'application/json'}); navigator.sendBeacon(REPORT_ENDPOINT, blob); __setDebug('enviado (beacon)'); return; } await fetch(REPORT_ENDPOINT, { method:'POST', headers:{'Content-Type':'text/plain'}, body: bodyStr, keepalive:true, mode:'no-cors' }); __setDebug('enviado (fetch)'); }catch(e){ console.error(e); __setDebug('error envio: '+e.message); } }
+  function hideSummary(){ const o=document.getElementById('summaryOverlay'); if(o) o.remove(); }
+  function showSummary(){
+    try{
+      hideSummary();
+      const r=buildReport();
+      const overlay=document.createElement('div'); overlay.id='summaryOverlay';
+      overlay.addEventListener('click', e=>{ if(e.target.id==='summaryOverlay') hideSummary(); });
+      const card=document.createElement('div'); card.id='summaryCard';
+      const h=document.createElement('h2'); h.textContent='Resultados';
+      const p=document.createElement('div'); p.textContent='Puntaje: '+r.correct+' / '+r.total+' ('+r.pct+'%)';
+      const grid=document.createElement('div'); grid.className='grid2';
+      const a=document.createElement('div'); a.textContent='Correctas: '+r.correct;
+      const b=document.createElement('div'); b.textContent='Incorrectas: '+r.incorrect;
+      grid.append(a,b);
+      const btn=document.createElement('button'); btn.id='summaryClose'; btn.textContent='Cerrar'; btn.addEventListener('click', hideSummary);
+      card.append(h,p,grid,btn); overlay.append(card); document.body.append(overlay);
+    }catch(err){ console.error(err); __setDebug('Error mostrando resumen: '+err.message); }
+  }
+
+  async function sendAutoReport(){
+    try{
+      const bodyStr=JSON.stringify({ summaryText: buildReportText(), report: buildReport() });
+      if(navigator.sendBeacon){ const blob = new Blob([bodyStr], {type:'application/json'}); navigator.sendBeacon(REPORT_ENDPOINT, blob); __setDebug('enviado (beacon)'); return; }
+      await fetch(REPORT_ENDPOINT, { method:'POST', headers:{'Content-Type':'text/plain'}, body: bodyStr, keepalive:true, mode:'no-cors' }); __setDebug('enviado (fetch)');
+    }catch(e){ console.error(e); __setDebug('error envio: '+e.message); }
+  }
 
   function startQuiz(){ seedQuiz(); current=0; renderStage(); }
   function restart(){ startQuiz(); }
@@ -213,7 +263,9 @@
     try{ ['btnEnviar','btnPrev','btnNext','btnRevisar','btnReiniciar'].forEach(id=>{ const el=document.getElementById(id); log(!!el, id+' presente'); }); }catch(e){ log(false,'botones ausentes'); }
     try{ log(Array.isArray(QUESTIONS)&&QUESTIONS.length>0,'QUESTIONS con items'); }catch(e){ log(false,'QUESTIONS invalido'); }
     try{ const s=document.getElementById('stage'); log(!!s.querySelector('.choice'),'alternativas renderizadas'); }catch(e){ log(false,'no hay alternativas'); }
-    try{ const txt=buildReportText(); log(typeof txt==='string' && txt.includes('\n'),'buildReportText retorna texto con \\n'); }catch(e){ log(false,'buildReportText lanza error'); }
+    try{ const txt=buildReportText(); log(typeof txt==='string' && txt.includes('\\n'),'buildReportText retorna texto con \\n'); }catch(e){ log(false,'buildReportText lanza error'); }
+    try{ const r=buildReport(); log(r.total===QUESTIONS.length,'reporte.total coincide con numero de preguntas'); log(r.correct+r.incorrect===r.total,'correctas+incorrectas==total'); }catch(e){ log(false,'consistencia del reporte'); }
+    try{ showSummary(); const overlay=document.getElementById('summaryOverlay'); log(!!overlay,'overlay de resumen se crea'); hideSummary(); }catch(e){ log(false,'showSummary/hideSummary fallan'); }
     try{ log(REPORT_ENDPOINT && typeof REPORT_ENDPOINT==='string','REPORT_ENDPOINT configurado'); }catch(e){ log(false,'REPORT_ENDPOINT no definido'); }
     window.__QUIZ_TESTS__=results;
   }
