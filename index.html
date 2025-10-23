@@ -113,12 +113,13 @@
       <div class="actions">
         <input id="studentName" class="input" type="text" placeholder="Nombre del estudiante" />
         <button id="btnSend">Enviar al profesor</button>
+        <button id="btnWA">WhatsApp</button>
+        <button id="btnSMS">SMS</button>
         <button id="btnCopy">Copiar</button>
         <button id="btnCloseModal">Cerrar</button>
       </div>
     </div>
-  </div>
-  </div>
+    </div>
 
   <script>
   // ---------- Utilidades y sonidos ----------
@@ -289,7 +290,7 @@
     document.addEventListener('change', (ev)=>{ if(ev.target && ev.target.matches('input[type="radio"]')){ const sel=getSelected(); if(sel!==null){ QUESTIONS[current].userChoice = sel; } } });
   }
 
-  document.addEventListener('DOMContentLoaded', ()=>{ bind(); startQuiz(); setButtons(true); }); startQuiz(); setButtons(true); }); startQuiz(); setButtons(true); }); startQuiz(); setButtons(true); });
+  document.addEventListener('DOMContentLoaded', ()=>{ bind(); startQuiz(); setButtons(true); });
   </script>
 </body>
 </html>
