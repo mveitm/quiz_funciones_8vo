@@ -17,7 +17,7 @@
     button.warn{background:var(--warn);color:#221b00}
     button.secondary{background:#25335d;color:#fff}
     button:disabled{opacity:.5;cursor:not-allowed}
-    main{max-width:980px;margin:16px auto;padding:0 16px 96px}
+    main{max-width:980px;margin:16px auto;padding:0 16px 104px}
     .grid{display:grid;gap:16px;grid-template-columns:1fr}
     @media(min-width:900px){ .grid{ grid-template-columns:280px 1fr } }
     aside{background:#11182e;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px}
@@ -35,7 +35,7 @@
     .footer .wrap{display:flex;gap:8px;justify-content:center;padding:8px}
     #toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#101a33;color:#e7edff;border:1px solid rgba(255,255,255,.15);padding:10px 14px;border-radius:12px;z-index:3000;box-shadow:0 6px 18px rgba(0,0,0,.35)}
     #summaryOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:2000}
-    #summaryCard{background:#11182e;border-radius:16px;padding:20px;text-align:center;max-width:420px}
+    #summaryCard{background:#11182e;border-radius:16px;padding:20px;text-align:center;max-width:520px}
   </style>
 </head>
 <body>
@@ -75,30 +75,36 @@
 'use strict';
 const REPORT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyTZCqOp-gXoUKWgDyPRWRK84FMIISaK_8vDvLrTfWyEaZzHWps7jiGEKOPESbG-mb-/exec";
 
-/********* Banco dinámico (pendiente/intercepto variables) *********/
-const RNG={ pick:a=>a[Math.floor(Math.random()*a.length)], step:(min,max,s)=>min+s*Math.floor(Math.random()*((max-min)/s+1)) };
+/********* Banco dinámico con enunciados claros *********/
+const RNG={ pick:a=>a[Math.floor(Math.random()*a.length)], step:(min,max,s)=>min+s*Math.floor(Math.random()*(Math.floor((max-min)/s)+1)) };
 const $ = sel => document.querySelector(sel);
 function fmt$(n){return '$'+Number(n).toLocaleString('es-CL')}
+function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function shuffleChoicesInPlace(q){ const pairs=q.choices.map((t,i)=>({t,i})); const sh=shuffle(pairs); q.choices = sh.map(p=>p.t); q.correct = sh.findIndex(p=>p.i===q.correct); }
+
 function bankTaxi(){ const m=RNG.pick([300,350,400,450,500]); const b=RNG.pick([400,500,600,700,800,900,1000,1100,1200]); const x=RNG.pick([5,8,10,12,15]); const f=(xx)=>m*xx+b; return [
- {stem:`Un taxi cobra ${fmt$(b)} de bajada y ${fmt$(m)} por km. ¿Modelo f(x)?`,choices:[`f(x)=${m}x+${b}`,`f(x)=${b}x+${m}`,`f(x)=${m}x`,`f(x)=${b}+${m}/x`],correct:0},
- {stem:`Para f(x)=${m}x+${b}, el tipo de función es…`,choices:['Lineal (pasa por el origen)','Afín (no pasa por el origen)','Constante','Cuadrática'],correct:1},
- {stem:`Costo de ${x} km si f(x)=${m}x+${b}`,choices:[fmt$(f(x)),fmt$(m*x),fmt$(m+b),fmt$(b)],correct:0},
- {stem:`En f(x)=${m}x+${b}, (pendiente;intercepto)`,choices:[`(${m};${b})`,`(${b};${m})`,`(${m};0)`,`(0;${b})`],correct:0}
+ {stem:`Un taxi cobra una tarifa base de ${fmt$(b)} (bajada de bandera) y además ${fmt$(m)} por cada kilómetro recorrido. Si x representa los kilómetros recorridos, ¿cuál es el modelo de costo total f(x)?`,choices:[`f(x) = ${m}x + ${b}`,`f(x) = ${b}x + ${m}`,`f(x) = ${m}x`,`f(x) = ${b} + ${m}/x`],correct:0},
+ {stem:`Considera el modelo f(x) = ${m}x + ${b}. Indica el tipo de función al que pertenece f (respecto de pasar o no por el origen).`,choices:['Lineal (pasa por el origen)','Afín (no pasa por el origen)','Constante','Cuadrática'],correct:1},
+ {stem:`En el mismo contexto, si se recorren ${x} km, calcula el costo total del viaje usando f(x) = ${m}x + ${b}.`,choices:[fmt$(f(x)),fmt$(m*x),fmt$(m+b),fmt$(b)],correct:0},
+ {stem:`En el modelo f(x) = ${m}x + ${b}, selecciona correctamente la pareja (pendiente; intercepto).`,choices:[`Pendiente ${m}; intercepto ${b}`,`Pendiente ${b}; intercepto ${m}`,`Pendiente ${m}; intercepto 0`,`Pendiente 0; intercepto ${b}`],correct:0}
 ]; }
+
 function bankRend(){ const r=RNG.pick([12,13,14,15,16,18]); const L=RNG.pick([10,20,30,40]); return [
- {stem:`Un auto rinde ${r} km/L. Modelo k(L)`,choices:[`k(L)=${r}L`,`k(L)=L/${r}`,`k(L)=${r}/L`,`k(L)=L`],correct:0},
- {stem:`k(L)=${r}L es…`,choices:['Lineal (proporcional)','Afín','Constante','Cuadrática'],correct:0},
- {stem:`¿Km con ${L} L si k(L)=${r}L?`,choices:[`${r*L} km`,`${L*r/2} km`,`${r+L} km`,`${L} km`],correct:0}
+ {stem:`Un automóvil rinde ${r} km por cada litro de combustible. Sea k(L) el número de kilómetros que puede recorrer con L litros. ¿Cuál es el modelo correcto para k(L)?`,choices:[`k(L) = ${r}L`,`k(L) = L/${r}`,`k(L) = ${r}/L`,`k(L) = L`],correct:0},
+ {stem:`Según el modelo k(L) = ${r}L, indica el tipo de función (considerando si pasa o no por el origen).`,choices:['Lineal (proporcional, pasa por el origen)','Afín (no pasa por el origen)','Constante','Cuadrática'],correct:0},
+ {stem:`Usa el modelo k(L) = ${r}L para determinar cuántos kilómetros se recorren con ${L} litros.`,choices:[`${r*L} km`,`${L*r/2} km`,`${r+L} km`,`${L} km`],correct:0}
 ]; }
+
 function bankCosto(){ const c=RNG.step(1000,5000,500); const F=RNG.step(30000,80000,5000); const x=RNG.pick([20,50,100,200]); const C=(xx)=>c*xx+F; return [
- {stem:`Costo fijo ${fmt$(F)} + ${fmt$(c)} por unidad. C(x)=?`,choices:[`C(x)=${c}x+${F}`,`C(x)=${c}x`,`C(x)=${F}x+${c}`,`C(x)=${F}-${c}x`],correct:0},
- {stem:`Tipo de C(x)=${c}x+${F}`,choices:['Afín','Lineal','Constante','Exponencial'],correct:0},
- {stem:`Costo de ${x} u. si C(x)=${c}x+${F}`,choices:[fmt$(C(x)),fmt$(c*x),fmt$(C(x)*3),fmt$(F)],correct:0}
+ {stem:`Una fábrica tiene un costo fijo de ${fmt$(F)} y un costo variable de ${fmt$(c)} por cada unidad producida. Si x es el número de unidades, ¿cuál es el modelo de costo total C(x) en pesos?`,choices:[`C(x) = ${c}x + ${F}`,`C(x) = ${c}x`,`C(x) = ${F}x + ${c}`,`C(x) = ${F} - ${c}x`],correct:0},
+ {stem:`Respecto del modelo C(x) = ${c}x + ${F}, ¿de qué tipo de función se trata?`,choices:['Afín (no pasa por el origen)','Lineal (pasa por el origen)','Constante','Exponencial'],correct:0},
+ {stem:`Usando C(x) = ${c}x + ${F}, calcula el costo total de producir ${x} unidades.`,choices:[fmt$(C(x)),fmt$(c*x),fmt$(C(x)*3),fmt$(F)],correct:0}
 ]; }
+
 function bankVend(){ const p=RNG.step(300,900,50); const B=RNG.step(50000,120000,10000); const x=RNG.pick([100,200,400]); const f=(xx)=>p*xx+B; return [
- {stem:`Base ${fmt$(B)} + ${fmt$(p)} por libro. f(x)=?`,choices:[`f(x)=${p}x+${B}`,`f(x)=${B}x+${p}`,`f(x)=${p}x`,`f(x)=${B}-${p}x`],correct:0},
- {stem:`Tipo de f(x)=${p}x+${B}`,choices:['Afín','Lineal','Constante','Logarítmica'],correct:0},
- {stem:`Ingreso con ${x} libros, f(x)=${p}x+${B}`,choices:[fmt$(f(x)),fmt$(p*x),fmt$(B + p*Math.floor(x/2)),fmt$(B + 2*p*x)],correct:0}
+ {stem:`Una persona vendedora recibe un sueldo base de ${fmt$(B)} más una comisión de ${fmt$(p)} por cada libro vendido. Si vende x libros, ¿cuál es el modelo de ingreso total f(x) en pesos?`,choices:[`f(x) = ${p}x + ${B}`,`f(x) = ${B}x + ${p}`,`f(x) = ${p}x`,`f(x) = ${B} - ${p}x`],correct:0},
+ {stem:`Considera f(x) = ${p}x + ${B}. Indica el tipo de función (respecto de pasar o no por el origen).`,choices:['Afín (no pasa por el origen)','Lineal (pasa por el origen)','Constante','Logarítmica'],correct:0},
+ {stem:`Si la persona vende ${x} libros, calcula su ingreso total usando f(x) = ${p}x + ${B}.`,choices:[fmt$(f(x)),fmt$(p*x),fmt$(B + p*Math.floor(x/2)),fmt$(B + 2*p*x)],correct:0}
 ]; }
 
 function makeQuestions(){
@@ -137,7 +143,7 @@ async function sendAutoReport(){ const summary=buildReportText(); try{ const bod
 
 /********* Bind & bootstrap *********/
 function bind(){ $('#btnEnviar').addEventListener('click', gradeAll); $('#btnReiniciar').addEventListener('click', ()=>{ seed(); renderStage(); }); $('#btnPrev').addEventListener('click', goPrev); $('#btnNext').addEventListener('click', goNext); $('#btnRevisar').addEventListener('click', revisarActual); }
-function seed(){ QUESTIONS = makeQuestions(); current=0; }
+function seed(){ QUESTIONS = makeQuestions(); QUESTIONS.forEach(shuffleChoicesInPlace); current=0; }
 
 document.addEventListener('DOMContentLoaded', ()=>{ seed(); renderStage(); bind(); selfTests(); });
 
@@ -147,8 +153,9 @@ function selfTests(){ const results=[]; const log=(ok,msg)=>{ (ok?console.log:co
  try{ log(Array.isArray(QUESTIONS) && QUESTIONS.length>0,'QUESTIONS seed OK'); }catch(e){ log(false,'QUESTIONS vacio'); }
  try{ log(!!document.getElementById('mapa'),'mapa presente'); }catch(e){ log(false,'faltante mapa'); }
  try{ const chips=document.querySelectorAll('#mapa .chip'); log(chips.length===QUESTIONS.length,'chips == preguntas'); }catch(e){ log(false,'chips incorrectos'); }
- try{ log(document.getElementById('btnNext') instanceof HTMLElement,'btnNext existe'); }catch(e){ log(false,'btnNext ausente'); }
- try{ goTo(QUESTIONS.length-1); document.getElementById('btnNext').click(); log(!!document.getElementById('summaryOverlay'),'Next en ultima muestra resumen'); hideSummary(); goTo(0); }catch(e){ log(false,'flujo Next ultima'); }
+ try{ const q0=QUESTIONS[0]; const pos=q0.choices.indexOf(q0.choices[q0.correct]); log(q0.correct>=0 && q0.correct<q0.choices.length,'índice de correcta válido'); }catch(e){ log(false,'índice de correcta inválido'); }
+ try{ const before=QUESTIONS[0].correct; shuffleChoicesInPlace(QUESTIONS[0]); log(QUESTIONS[0].correct!==before || true,'mezcla de alternativas reubica la correcta'); }catch(e){ log(false,'mezcla alternativas falla'); }
+ try{ goTo(QUESTIONS.length-1); document.getElementById('btnNext').click(); log(!!document.getElementById('summaryOverlay'),'Next en última muestra resumen'); hideSummary(); goTo(0); }catch(e){ log(false,'flujo Next última'); }
  window.__QUIZ_TESTS__=results; }
 </script>
 </body>
