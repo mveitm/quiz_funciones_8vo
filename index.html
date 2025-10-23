@@ -53,7 +53,6 @@
     .footer-actions .wrap{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
 
     .muted{opacity:.7}
-    .hidden{display:none}
 
     @media print{ header, .footer-actions{display:none} body{background:#fff; color:#000} .panel, .qcard{background:#fff; color:#000; border-color:#888} .chip{border:1px solid #000} }
   </style>
@@ -95,63 +94,51 @@
 
   <script>
   'use strict';
-  /********** DIAGNOSTICO EN PANTALLA **********/
-  (function(){
-    const box=document.createElement('div');
-    box.id='debugBox';
-    box.style.cssText='position:fixed;right:8px;bottom:8px;background:#11182e;color:#9dc1ff;padding:8px 10px;border:1px solid rgba(255,255,255,.1);border-radius:10px;font:12px/1.2 system-ui;z-index:9999;max-width:60ch;';
-    box.textContent='debug listo';
-    document.addEventListener('error',e=>{box.textContent='JS error: '+e.message;},true);
-    window.addEventListener('error',e=>{box.textContent='JS error: '+(e.message||e.error);});
-    document.addEventListener('DOMContentLoaded', ()=>{ try{ bind(); startQuiz(); runSelfTests(); __setDebug('iniciado'); }catch(e){ __setDebug('init error: '+e.message); console.error(e); } });});
-    window.__setDebug=(msg)=>{ box.textContent=msg; };
-  })();
+  // ===== Debug ligero en pantalla (no bloqueante) =====
+  let __DBG_BOX__ = null;
+  function __setDebug(msg){ try{ if(!__DBG_BOX__){ __DBG_BOX__=document.createElement('div'); __DBG_BOX__.id='debugBox'; __DBG_BOX__.style.cssText='position:fixed;right:8px;bottom:8px;background:#11182e;color:#9dc1ff;padding:8px 10px;border:1px solid rgba(255,255,255,.1);border-radius:10px;font:12px/1.2 system-ui;z-index:9999;max-width:60ch;'; document.body.appendChild(__DBG_BOX__); } __DBG_BOX__.textContent=String(msg); }catch(_){} }
+  window.addEventListener('error', (e)=>{ __setDebug('JS error: '+(e.message||e.error)); });
 
-  /********** UTILIDADES **********/
+  // ===== Utilidades / sonidos =====
   const RNG={ pick:a=>a[Math.floor(Math.random()*a.length)], randStep(min,max,step){const n=Math.floor((max-min)/step);return min+step*Math.floor(Math.random()*(n+1));} };
   const fmtMoney=n=>'$'+Number(n).toLocaleString('es-CL');
-
   let actx; function getAC(){ try{ if(!actx){ actx=new (window.AudioContext||window.webkitAudioContext)(); } return actx; }catch(e){ return null; } }
   function tone(opts){ const ac=getAC(); if(!ac) return; const {freq=440,dur=.12,type='sine',gain=.06}=opts||{}; const o=ac.createOscillator(); const g=ac.createGain(); o.type=type; o.frequency.value=freq; g.gain.value=gain; o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime+dur); }
   function seq(notes){ const ac=getAC(); if(!ac) return; let t=ac.currentTime; notes.forEach(n=>{ const o=ac.createOscillator(); const g=ac.createGain(); o.type=n.type||'sine'; o.frequency.value=n.freq; g.gain.value=n.gain||0.06; o.connect(g); g.connect(ac.destination); o.start(t+(n.delay||0)); o.stop(t+(n.delay||0)+n.dur); }); }
   const SFX={ click:()=>tone({freq:260,dur:0.06,type:'triangle'}), select:()=>tone({freq:330,dur:0.05,type:'square'}), correct:()=>seq([{freq:620,dur:.08},{freq:740,dur:.08,delay:.08},{freq:880,dur:.12,delay:.16,type:'triangle',gain:.07}]), incorrect:()=>seq([{freq:220,dur:.15,type:'sawtooth',gain:.07},{freq:180,dur:.18,delay:.12,type:'sawtooth',gain:.06}]) };
 
-  /********** BANCO DE PREGUNTAS (ASCII-safe) **********/
+  // ===== Banco de preguntas (ASCII-safe) =====
   function genTaxi(){ const m=RNG.pick([300,350,400,450,500]); const b=RNG.pick([400,500,600,700,800,900,1000,1100,1200]); const x=RNG.pick([5,8,10,12,15]); const f=xx=>m*xx+b; return [
     { id:`TX-1-${m}-${b}`, context:'Taxi', skill:'Modelo', stem:`Un taxi cobra ${fmtMoney(b)} de bajada y ${fmtMoney(m)} por kilometro. Cual es el modelo f(x)?`, choices:[`f(x) = ${m}x + ${b}`,`f(x) = ${b}x + ${m}`,`f(x) = ${m}x`,`f(x) = ${b} + ${m}/x`], correct:0, explanation:`Pendiente ${m} por km; intercepto ${b}.`},
     { id:`TX-2-${m}-${b}`, context:'Taxi', skill:'Tipo', stem:`Para f(x) = ${m}x + ${b}, el tipo es...`, choices:['Lineal (pasa por el origen)','Afin (no pasa por el origen)','Constante','Cuadratica'], correct:1, explanation:`Tiene termino independiente ${b} distinto de 0: es afin.`},
     { id:`TX-3-${m}-${b}-${x}`, context:'Taxi', skill:'Calculo', stem:`Cuanto cuesta un viaje de ${x} km si f(x) = ${m}x + ${b}?`, choices:[fmtMoney(f(x)),fmtMoney(m*x),fmtMoney(m+b),fmtMoney(b)], correct:0, explanation:`f(${x}) = ${m}*${x} + ${b} = ${fmtMoney(m*x)} + ${fmtMoney(b)} = ${fmtMoney(f(x))}.`},
     { id:`TX-4-${m}-${b}`, context:'Taxi', skill:'Parametros', stem:`En f(x) = ${m}x + ${b}, cual es (pendiente; intercepto)?`, choices:[`Pendiente ${m}; Intercepto ${b}`,`Pendiente ${b}; Intercepto ${m}`,`Pendiente ${m}; Intercepto 0`,`Pendiente 0; Intercepto ${b}`], correct:0, explanation:`Pendiente ${m}; Intercepto ${b}.`}
   ]; }
-
   function genRendimiento(){ const r=RNG.pick([12,13,14,15,16,18]); const L=RNG.pick([10,20,30,40]); return [
     { id:`RD-1-${r}`, context:'Auto', skill:'Modelo', stem:`Un auto rinde ${r} km por litro. Sea k(L) los km con L litros. Modelo correcto:`, choices:[`k(L) = ${r}L`,`k(L) = L/${r}`,`k(L) = ${r}/L`,`k(L) = L`], correct:0, explanation:`Por cada litro recorre ${r} km, con L litros: ${r}*L.`},
     { id:`RD-2-${r}`, context:'Auto', skill:'Tipo', stem:`La funcion k(L) = ${r}L es...`, choices:['Lineal (proporcional, pasa por el origen)','Afin (no pasa por el origen)','Constante','Cuadratica'], correct:0, explanation:`Forma m*x con intercepto 0.`},
     { id:`RD-3-${r}-${L}`, context:'Auto', skill:'Calculo', stem:`Cuantos km con ${L} L si k(L) = ${r}L?`, choices:[`${r*L} km`,`${L*r/2} km`,`${r+L} km`,`${L} km`], correct:0, explanation:`k(${L}) = ${r}*${L} = ${r*L} km.`},
     { id:`RD-4-${r}`, context:'Auto', skill:'Parametros', stem:`En k(L) = ${r}L, (pendiente; intercepto):`, choices:[`Pendiente ${r}; Intercepto 0`,`Pendiente 0; Intercepto ${r}`,`Pendiente 1/${r}; Intercepto 0`,`Pendiente ${r}; Intercepto 600`], correct:0, explanation:`Pendiente ${r}; Intercepto 0.`}
   ]; }
-
   function genCosto(){ const c=RNG.randStep(1000,5000,500); const F=RNG.randStep(30000,80000,5000); const x=RNG.pick([20,50,100,200]); const C=xx=>c*xx+F; return [
     { id:`CS-1-${c}-${F}`, context:'Maquina', skill:'Modelo', stem:`Costo fijo ${fmtMoney(F)} mas ${fmtMoney(c)} por unidad. Costo total C(x):`, choices:[`C(x) = ${c}x + ${F}`,`C(x) = ${c}x`,`C(x) = ${F}x + ${c}`,`C(x) = ${F} - ${c}x`], correct:0, explanation:`Variable ${c} por unidad y fijo ${F}.`},
     { id:`CS-2-${c}-${F}`, context:'Maquina', skill:'Tipo', stem:`Para C(x) = ${c}x + ${F}, la funcion es...`, choices:['Afin (no pasa por el origen)','Lineal (pasa por el origen)','Constante','Exponencial'], correct:0, explanation:`Tiene termino independiente ${F} distinto de 0.`},
     { id:`CS-3-${c}-${F}-${x}`, context:'Maquina', skill:'Calculo', stem:`Costo de producir ${x} unidades si C(x) = ${c}x + ${F}?`, choices:[fmtMoney(C(x)),fmtMoney(c*x),fmtMoney(C(x)*3),fmtMoney(F)], correct:0, explanation:`C(${x}) = ${c}*${x} + ${F} = ${fmtMoney(c*x)} + ${fmtMoney(F)} = ${fmtMoney(C(x))}.`},
     { id:`CS-4-${c}-${F}`, context:'Maquina', skill:'Parametros', stem:`En C(x) = ${c}x + ${F}, (pendiente; intercepto):`, choices:[`Pendiente ${c}; Intercepto ${F}`,`Pendiente ${F}; Intercepto ${c}`,`Pendiente ${c}; Intercepto 0`,`Pendiente 0; Intercepto ${F}`], correct:0, explanation:`Pendiente ${c}; Intercepto ${F}.`}
   ]; }
-
   function genVendedor(){ const p=RNG.randStep(300,900,50); const B=RNG.randStep(50000,120000,10000); const x=RNG.pick([100,200,400]); const f=xx=>p*xx+B; return [
     { id:`VE-1-${p}-${B}`, context:'Vendedor', skill:'Modelo', stem:`Sueldo base ${fmtMoney(B)} mas ${fmtMoney(p)} por libro. Ingreso f(x):`, choices:[`f(x) = ${p}x + ${B}`,`f(x) = ${B}x + ${p}`,`f(x) = ${p}x`,`f(x) = ${B} - ${p}x`], correct:0, explanation:`Comision ${p} (pendiente) y base ${B} (intercepto).`},
     { id:`VE-2-${p}-${B}`, context:'Vendedor', skill:'Tipo', stem:`Segun f(x) = ${p}x + ${B}, la funcion es...`, choices:['Afin (no pasa por el origen)','Lineal (pasa por el origen)','Constante','Logaritmica'], correct:0, explanation:`Termino independiente ${B} distinto de 0.`},
     { id:`VE-3-${p}-${B}-${x}`, context:'Vendedor', skill:'Calculo', stem:`Cuanto ganara si vende ${x} libros? Usa f(x) = ${p}x + ${B}.`, choices:[fmtMoney(f(x)),fmtMoney(B + p*Math.floor(x/2)),fmtMoney(p*x),fmtMoney(B + 2*p*x)], correct:0, explanation:`f(${x}) = ${p}*${x} + ${B} = ${fmtMoney(p*x)} + ${fmtMoney(B)} = ${fmtMoney(f(x))}.`},
     { id:`VE-4-${p}-${B}`, context:'Vendedor', skill:'Parametros', stem:`Para f(x) = ${p}x + ${B}, (pendiente; intercepto):`, choices:[`Pendiente ${p}; Intercepto ${B}`,`Pendiente ${B}; Intercepto ${p}`,`Pendiente ${p}; Intercepto 0`,`Pendiente 0; Intercepto ${B}`], correct:0, explanation:`Pendiente ${p}; Intercepto ${B}.`}
   ]; }
-
   function buildBank(){ return [...genTaxi(),...genRendimiento(),...genCosto(),...genVendedor()].map(q=>({...q, choices:q.choices.map((t,i)=>({text:t, correct:i===q.correct}))})); }
 
-  /********** ESTADO **********/
+  // ===== Estado =====
   let QUESTIONS=[]; let current=0;
   const REPORT_ENDPOINT='https://script.google.com/macros/s/AKfycbxmFgBXEzfI-0YRy3Ubs18FwXMjBJH4XGkLt32kCRHIVFkyPJggsBVL9NplmxuFzZ_y/exec';
 
-  /********** RENDER **********/
+  // ===== Render =====
   function shuffle(a){ const b=a.slice(); for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]];} return b; }
   function deepCopy(o){ return JSON.parse(JSON.stringify(o)); }
   function seedQuiz(){ QUESTIONS=shuffle(buildBank().map(q=>({...deepCopy(q), userChoice:null, isGraded:false, isCorrect:false }))); QUESTIONS.forEach(q=>{ q.choices=shuffle(q.choices); }); }
@@ -201,7 +188,7 @@
   function updateScoreChip(){ const s=score(); const total=QUESTIONS.length; const pct= total? Math.round(100*s/total) : 0; document.getElementById('scoreChip').textContent='Puntaje: '+s+'/'+total+' ('+pct+'%)'; }
 
   function buildReport(){ const total=QUESTIONS.length; const correct=score(); const incorrect=total-correct; const pct= total? Math.round(100*correct/total) : 0; const perQ=QUESTIONS.map((q,i)=>({ n:i+1, context:q.context, skill:q.skill, stem:q.stem, answer:q.userChoice!==null? q.choices[q.userChoice].text:null, correct:q.choices.find(c=>c.correct).text, isCorrect:q.isCorrect })); return { total, correct, incorrect, pct, perQ }; }
-  function buildReportText(){ const dt=new Date().toLocaleString('es-CL'); const r=buildReport(); const lines=[ 'Resultados Quiz - Funciones Lineales y Afines', 'Estudiante: (omitido)', 'Fecha: '+dt, 'Puntaje: '+r.correct+'/'+r.total+' ('+r.pct+'%)', 'Correctas: '+r.correct+' | Incorrectas: '+r.incorrect, '', 'Detalle por pregunta:' ]; r.perQ.forEach(x=>{ lines.push(x.n+'. ['+x.context+'/'+x.skill+']'); lines.push('   Enunciado: '+x.stem); lines.push('   Respuesta: '+(x.answer||'-')); lines.push('   Correcta: '+x.correct); lines.push('   Resultado: '+(x.isCorrect?'CORRECTA':'INCORRECTA')); }); return lines.join('\\n');}
+  function buildReportText(){ const dt=new Date().toLocaleString('es-CL'); const r=buildReport(); const lines=[ 'Resultados Quiz - Funciones Lineales y Afines', 'Estudiante: (omitido)', 'Fecha: '+dt, 'Puntaje: '+r.correct+'/'+r.total+' ('+r.pct+'%)', 'Correctas: '+r.correct+' | Incorrectas: '+r.incorrect, '', 'Detalle por pregunta:' ]; r.perQ.forEach(x=>{ lines.push(x.n+'. ['+x.context+'/'+x.skill+']'); lines.push('   Enunciado: '+x.stem); lines.push('   Respuesta: '+(x.answer||'-')); lines.push('   Correcta: '+x.correct); lines.push('   Resultado: '+(x.isCorrect?'CORRECTA':'INCORRECTA')); }); return lines.join('\n'); }
 
   async function sendAutoReport(){ try{ const bodyStr=JSON.stringify({ summaryText: buildReportText(), report: buildReport() }); if(navigator.sendBeacon){ const blob = new Blob([bodyStr], {type:'application/json'}); navigator.sendBeacon(REPORT_ENDPOINT, blob); __setDebug('enviado (beacon)'); return; } await fetch(REPORT_ENDPOINT, { method:'POST', headers:{'Content-Type':'text/plain'}, body: bodyStr, keepalive:true, mode:'no-cors' }); __setDebug('enviado (fetch)'); }catch(e){ console.error(e); __setDebug('error envio: '+e.message); } }
 
@@ -217,10 +204,19 @@
     document.addEventListener('click',e=>{ if(e.target.closest('button')) SFX.click(); });
   }
 
-  document.addEventListener('DOMContentLoaded', ()=>{ try{ bind(); startQuiz(); __setDebug('iniciado'); }catch(e){ __setDebug('init error: '+e.message); console.error(e); } });
+  document.addEventListener('DOMContentLoaded', ()=>{ try{ bind(); startQuiz(); runSelfTests(); __setDebug('iniciado'); }catch(e){ __setDebug('init error: '+e.message); console.error(e); } });
 
-  // tests rapidos
-  window.addEventListener('load', ()=>{ try{ if(!document.getElementById('stage').querySelector('.choice')) { __setDebug('TEST: no renderizo alternativas'); } }catch(_){} });
+  // ===== Tests (no tocar a menos que estén mal) =====
+  function runSelfTests(){
+    const results=[]; const log=(ok,m)=>{ (ok?console.log:console.error)('[TEST '+(ok?'OK':'FAIL')+']',m); results.push({ok,m}); };
+    try{ log(typeof startQuiz==='function','startQuiz expuesta'); }catch(e){ log(false,'startQuiz no accesible'); }
+    try{ ['btnEnviar','btnPrev','btnNext','btnRevisar','btnReiniciar'].forEach(id=>{ const el=document.getElementById(id); log(!!el, id+' presente'); }); }catch(e){ log(false,'botones ausentes'); }
+    try{ log(Array.isArray(QUESTIONS)&&QUESTIONS.length>0,'QUESTIONS con items'); }catch(e){ log(false,'QUESTIONS invalido'); }
+    try{ const s=document.getElementById('stage'); log(!!s.querySelector('.choice'),'alternativas renderizadas'); }catch(e){ log(false,'no hay alternativas'); }
+    try{ const txt=buildReportText(); log(typeof txt==='string' && txt.includes('\n'),'buildReportText retorna texto con \\n'); }catch(e){ log(false,'buildReportText lanza error'); }
+    try{ log(REPORT_ENDPOINT && typeof REPORT_ENDPOINT==='string','REPORT_ENDPOINT configurado'); }catch(e){ log(false,'REPORT_ENDPOINT no definido'); }
+    window.__QUIZ_TESTS__=results;
+  }
   </script>
 </body>
 </html>
