@@ -5,17 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Quiz: Funciones Lineales y Afines</title>
   <style>
-    body{font-family:system-ui,Segoe UI,Roboto,Arial;background:#0b1020;color:#fff;margin:0;padding:0}
-    header{background:#11182e;padding:10px 16px;position:sticky;top:0;z-index:5}
-    .badge{background:#25335d;padding:6px 12px;border-radius:999px;font-size:.9rem}
-    button{background:#4ea1ff;color:#041226;border:0;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer;margin:4px}
-    button.warn{background:#ffcc66;color:#221b00}
+    :root{ --bg:#0b1020; --panel:#11182e; --muted:#9fb0d6; --text:#f2f5ff; --accent:#4ea1ff; --warn:#ffcc66; --error:#ff6682; --ok:#53f29f; --chip:#1b2544; }
+    *{box-sizing:border-box} html,body{height:100%}
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;background:#0b1020;color:var(--text);margin:0}
+    header{background:#11182e;border-bottom:1px solid rgba(255,255,255,.06);padding:12px 16px;position:sticky;top:0;z-index:5}
+    .wrap{max-width:980px;margin:0 auto}
+    .badge{background:#25335d;padding:6px 12px;border-radius:999px;font-size:.9rem;display:inline-block}
+    .hstack{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .title{display:flex;justify-content:space-between;align-items:center;gap:12px}
+    button{background:var(--accent);color:#041226;border:0;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
+    button.warn{background:var(--warn);color:#221b00}
     button.secondary{background:#25335d;color:#fff}
-    .qcard{margin:16px;padding:16px;background:#11182e;border-radius:12px}
-    .choice{margin:6px 0;padding:6px;border-radius:8px;background:#1b2544;display:flex;align-items:center;gap:6px}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    main{max-width:980px;margin:16px auto;padding:0 16px 96px}
+    .grid{display:grid;gap:16px;grid-template-columns:1fr}
+    @media(min-width:900px){ .grid{ grid-template-columns:280px 1fr } }
+    aside{background:#11182e;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px}
+    .qcard{background:#11182e;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:16px}
+    .choice{margin:6px 0;padding:8px;border-radius:8px;background:#1b2544;display:flex;align-items:center;gap:8px}
     .feedback{margin-top:10px;padding:10px;border-radius:8px}
     .feedback.correct{background:rgba(83,242,159,.15);color:#bcffe0}
     .feedback.incorrect{background:rgba(255,102,130,.15);color:#ffd5de}
+    .chips{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{user-select:none;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:var(--chip);color:#cfe0ff;font-weight:700;border:1px solid rgba(255,255,255,.08);cursor:pointer}
+    .chip.current{outline:2px solid #9dc1ff}
+    .chip.ok{background:rgba(83,242,159,.18);color:#a8ffd6;border-color:rgba(83,242,159,.6)}
+    .chip.bad{background:rgba(255,102,130,.18);color:#ffd5de;border-color:rgba(255,120,150,.6)}
+    .footer{position:fixed;left:0;right:0;bottom:0;background:#11182e;border-top:1px solid rgba(255,255,255,.06)}
+    .footer .wrap{display:flex;gap:8px;justify-content:center;padding:8px}
     #toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#101a33;color:#e7edff;border:1px solid rgba(255,255,255,.15);padding:10px 14px;border-radius:12px;z-index:3000;box-shadow:0 6px 18px rgba(0,0,0,.35)}
     #summaryOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:2000}
     #summaryCard{background:#11182e;border-radius:16px;padding:20px;text-align:center;max-width:420px}
@@ -23,40 +40,116 @@
 </head>
 <body>
 <header>
-  <div class="badge">Con cariño de su profesor Mauricio ❤️</div>
-  <h2>Quiz: Funciones Lineales y Afines</h2>
-  <button id="btnEnviar" class="warn">Resultados</button>
-  <button id="btnReiniciar">Reiniciar</button>
-  <span id="scoreChip" class="badge">Puntaje: 0/0</span>
+  <div class="wrap title">
+    <div>
+      <div class="badge">Con cariño de su profesor Mauricio ❤️</div>
+      <h2 style="margin:.3rem 0 0">Quiz: Funciones Lineales y Afines</h2>
+    </div>
+    <div class="hstack">
+      <button id="btnEnviar" class="warn">Resultados</button>
+      <button id="btnReiniciar">Reiniciar</button>
+      <span id="scoreChip" class="badge">Puntaje: 0/0</span>
+    </div>
+  </div>
 </header>
 
 <main>
-  <section id="stage" class="qcard"></section>
-  <div style="position:fixed;bottom:0;left:0;right:0;padding:8px;background:#11182e;display:flex;justify-content:center;gap:8px">
+  <section class="grid">
+    <aside>
+      <h3 style="margin:.2rem 0 .6rem">Mapa de preguntas</h3>
+      <div id="mapa" class="chips" aria-live="polite"></div>
+    </aside>
+    <section id="stage" class="qcard" aria-live="polite"></section>
+  </section>
+</main>
+
+<div class="footer">
+  <div class="wrap">
     <button id="btnPrev" class="secondary">Anterior</button>
     <button id="btnRevisar" class="warn">Revisar</button>
     <button id="btnNext">Siguiente</button>
   </div>
-</main>
+</div>
 
 <script>
 'use strict';
 const REPORT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyTZCqOp-gXoUKWgDyPRWRK84FMIISaK_8vDvLrTfWyEaZzHWps7jiGEKOPESbG-mb-/exec";
-let QUESTIONS=[];let current=0;
-function RNGpick(a){return a[Math.floor(Math.random()*a.length)]}
-function genBank(){return[{stem:'f(x)=3x+2 ¿Cuál es el tipo de función?',choices:['Lineal','Afín','Constante','Cuadrática'],correct:1},{stem:'En f(x)=5x la pendiente es...',choices:['5','x','0','1/5'],correct:0},{stem:'f(x)=2x+4 ¿Cuál es el valor de f(3)?',choices:['10','8','6','12'],correct:0}].map(q=>({...q,userChoice:null,isGraded:false,isCorrect:false}))}
-function seedQuiz(){QUESTIONS=genBank()}
-function renderStage(){const q=QUESTIONS[current];const s=document.getElementById('stage');s.innerHTML=`<div><strong>Pregunta ${current+1} de ${QUESTIONS.length}</strong><p>${q.stem}</p></div>`;q.choices.forEach((c,i)=>{const l=document.createElement('label');l.className='choice';l.innerHTML=`<input type="radio" name="q${current}" value="${i}">${String.fromCharCode(65+i)}. ${c}`;if(q.userChoice===i)l.querySelector('input').checked=true;l.querySelector('input').onchange=()=>q.userChoice=i;s.appendChild(l)});if(q.isGraded){const fb=document.createElement('div');fb.className='feedback '+(q.isCorrect?'correct':'incorrect');fb.innerHTML=q.isCorrect?'✅ Correcto':'❌ Incorrecto';s.appendChild(fb)}}
-function revisarActual(){const q=QUESTIONS[current];if(q.isGraded)return;q.isGraded=true;q.isCorrect=q.userChoice===q.correct;renderStage()}
-function gradeAll(){QUESTIONS.forEach(q=>{if(!q.isGraded){q.isGraded=true;q.isCorrect=q.userChoice===q.correct}});renderStage();updateScore();showSummary();sendAutoReport()}
-function goTo(i){current=Math.max(0,Math.min(QUESTIONS.length-1,i));renderStage()}
-function updateScore(){const ok=QUESTIONS.filter(q=>q.isCorrect).length;document.getElementById('scoreChip').textContent=`Puntaje: ${ok}/${QUESTIONS.length}`}
-function showSummary(){const ok=QUESTIONS.filter(q=>q.isCorrect).length;const tot=QUESTIONS.length;const wrong=tot-ok;const o=document.createElement('div');o.id='summaryOverlay';const c=document.createElement('div');c.id='summaryCard';c.innerHTML=`<h2>Resultados</h2><p>Puntaje: ${ok}/${tot}</p><p>Correctas: ${ok} | Incorrectas: ${wrong}</p><button onclick="this.closest('#summaryOverlay').remove()">Cerrar</button>`;o.appendChild(c);o.onclick=e=>{if(e.target.id==='summaryOverlay')o.remove()};document.body.appendChild(o)}
-function showToast(msg,err){const old=document.getElementById('toast');if(old)old.remove();const t=document.createElement('div');t.id='toast';t.textContent=msg;t.style.background=err?'#3a1020':'#101a33';document.body.appendChild(t);setTimeout(()=>t.remove(),2500)}
-function buildReportText(){const ok=QUESTIONS.filter(q=>q.isCorrect).length;const tot=QUESTIONS.length;let txt=`Resultados Quiz - Funciones Lineales y Afines\nPuntaje: ${ok}/${tot}\n`;QUESTIONS.forEach((q,i)=>{txt+=`Q${i+1}: ${q.stem}\nResp: ${q.userChoice!==null?q.choices[q.userChoice]:'(sin respuesta)'}\nCorrecta: ${q.choices[q.correct]}\nResultado: ${q.isCorrect?'CORRECTA':'INCORRECTA'}\n\n`});return txt}
-async function sendAutoReport(){const summary=buildReportText();try{const body=new URLSearchParams();body.set('summaryText',summary);await fetch(REPORT_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString(),mode:'no-cors',keepalive:true});showToast('Resultados enviados');}catch(e){console.error(e);showToast('No se pudo enviar',true)}}
-function bind(){document.getElementById('btnEnviar').onclick=gradeAll;document.getElementById('btnReiniciar').onclick=()=>{seedQuiz();current=0;renderStage()};document.getElementById('btnPrev').onclick=()=>goTo(current-1);document.getElementById('btnNext').onclick=()=>goTo(current+1);document.getElementById('btnRevisar').onclick=revisarActual}
-document.addEventListener('DOMContentLoaded',()=>{seedQuiz();renderStage();bind()});
+
+/********* Banco dinámico (pendiente/intercepto variables) *********/
+const RNG={ pick:a=>a[Math.floor(Math.random()*a.length)], step:(min,max,s)=>min+s*Math.floor(Math.random()*((max-min)/s+1)) };
+const $ = sel => document.querySelector(sel);
+function fmt$(n){return '$'+Number(n).toLocaleString('es-CL')}
+function bankTaxi(){ const m=RNG.pick([300,350,400,450,500]); const b=RNG.pick([400,500,600,700,800,900,1000,1100,1200]); const x=RNG.pick([5,8,10,12,15]); const f=(xx)=>m*xx+b; return [
+ {stem:`Un taxi cobra ${fmt$(b)} de bajada y ${fmt$(m)} por km. ¿Modelo f(x)?`,choices:[`f(x)=${m}x+${b}`,`f(x)=${b}x+${m}`,`f(x)=${m}x`,`f(x)=${b}+${m}/x`],correct:0},
+ {stem:`Para f(x)=${m}x+${b}, el tipo de función es…`,choices:['Lineal (pasa por el origen)','Afín (no pasa por el origen)','Constante','Cuadrática'],correct:1},
+ {stem:`Costo de ${x} km si f(x)=${m}x+${b}`,choices:[fmt$(f(x)),fmt$(m*x),fmt$(m+b),fmt$(b)],correct:0},
+ {stem:`En f(x)=${m}x+${b}, (pendiente;intercepto)`,choices:[`(${m};${b})`,`(${b};${m})`,`(${m};0)`,`(0;${b})`],correct:0}
+]; }
+function bankRend(){ const r=RNG.pick([12,13,14,15,16,18]); const L=RNG.pick([10,20,30,40]); return [
+ {stem:`Un auto rinde ${r} km/L. Modelo k(L)`,choices:[`k(L)=${r}L`,`k(L)=L/${r}`,`k(L)=${r}/L`,`k(L)=L`],correct:0},
+ {stem:`k(L)=${r}L es…`,choices:['Lineal (proporcional)','Afín','Constante','Cuadrática'],correct:0},
+ {stem:`¿Km con ${L} L si k(L)=${r}L?`,choices:[`${r*L} km`,`${L*r/2} km`,`${r+L} km`,`${L} km`],correct:0}
+]; }
+function bankCosto(){ const c=RNG.step(1000,5000,500); const F=RNG.step(30000,80000,5000); const x=RNG.pick([20,50,100,200]); const C=(xx)=>c*xx+F; return [
+ {stem:`Costo fijo ${fmt$(F)} + ${fmt$(c)} por unidad. C(x)=?`,choices:[`C(x)=${c}x+${F}`,`C(x)=${c}x`,`C(x)=${F}x+${c}`,`C(x)=${F}-${c}x`],correct:0},
+ {stem:`Tipo de C(x)=${c}x+${F}`,choices:['Afín','Lineal','Constante','Exponencial'],correct:0},
+ {stem:`Costo de ${x} u. si C(x)=${c}x+${F}`,choices:[fmt$(C(x)),fmt$(c*x),fmt$(C(x)*3),fmt$(F)],correct:0}
+]; }
+function bankVend(){ const p=RNG.step(300,900,50); const B=RNG.step(50000,120000,10000); const x=RNG.pick([100,200,400]); const f=(xx)=>p*xx+B; return [
+ {stem:`Base ${fmt$(B)} + ${fmt$(p)} por libro. f(x)=?`,choices:[`f(x)=${p}x+${B}`,`f(x)=${B}x+${p}`,`f(x)=${p}x`,`f(x)=${B}-${p}x`],correct:0},
+ {stem:`Tipo de f(x)=${p}x+${B}`,choices:['Afín','Lineal','Constante','Logarítmica'],correct:0},
+ {stem:`Ingreso con ${x} libros, f(x)=${p}x+${B}`,choices:[fmt$(f(x)),fmt$(p*x),fmt$(B + p*Math.floor(x/2)),fmt$(B + 2*p*x)],correct:0}
+]; }
+
+function makeQuestions(){
+  const raw=[...bankTaxi(),...bankRend(),...bankCosto(),...bankVend()];
+  return raw.map(q=>({...q,userChoice:null,isGraded:false,isCorrect:false}));
+}
+
+/********* Estado *********/
+let QUESTIONS=[]; let current=0;
+
+/********* Render *********/
+function renderMap(){ const cont=$('#mapa'); cont.replaceChildren(); QUESTIONS.forEach((q,i)=>{ const b=document.createElement('button'); b.className='chip'; b.textContent=String(i+1); if(i===current) b.classList.add('current'); if(q.isGraded) b.classList.add(q.isCorrect?'ok':'bad'); b.addEventListener('click',()=>{ goTo(i); }); cont.appendChild(b); }); }
+
+function renderStage(){ const q=QUESTIONS[current]; const s=$('#stage'); s.replaceChildren(); const h=document.createElement('div'); h.innerHTML=`<strong>Pregunta ${current+1} de ${QUESTIONS.length}</strong>`; s.appendChild(h); const p=document.createElement('p'); p.textContent=q.stem; s.appendChild(p); q.choices.forEach((c,i)=>{ const l=document.createElement('label'); l.className='choice'; const inp=document.createElement('input'); inp.type='radio'; inp.name='q'+current; inp.value=String(i); if(q.userChoice===i) inp.checked=true; inp.disabled=q.isGraded; inp.addEventListener('change',()=>{ q.userChoice=i; }); const span=document.createElement('span'); span.textContent=String.fromCharCode(65+i)+'. '+c; l.append(inp,span); s.appendChild(l); }); if(q.isGraded){ const fb=document.createElement('div'); fb.className='feedback '+(q.isCorrect?'correct':'incorrect'); fb.textContent=q.isCorrect?'✅ Correcto':'❌ Incorrecto'; s.appendChild(fb); }
+  renderMap(); updateScore(); updateNavButtons(); }
+
+function updateNavButtons(){ $('#btnPrev').disabled = (current===0); $('#btnNext').disabled = false; }
+
+function goTo(i){ current=Math.max(0,Math.min(QUESTIONS.length-1,i)); renderStage(); }
+
+function revisarActual(){ const q=QUESTIONS[current]; if(q.isGraded) return; q.isGraded=true; q.isCorrect=(q.userChoice===q.correct); renderStage(); }
+
+function goPrev(){ if(current===0) return; goTo(current-1); }
+function goNext(){ if(current>=QUESTIONS.length-1){ showSummary(); return; } goTo(current+1); }
+
+function gradeAll(){ QUESTIONS.forEach(q=>{ if(!q.isGraded){ q.isGraded=true; q.isCorrect=(q.userChoice===q.correct); } }); renderStage(); showSummary(); sendAutoReport(); }
+
+function updateScore(){ const ok=QUESTIONS.reduce((a,q)=>a+(q.isCorrect?1:0),0); const tot=QUESTIONS.length; $('#scoreChip').textContent=`Puntaje: ${ok}/${tot}`; }
+
+/********* Resumen + Envío *********/
+function showToast(msg,err){ const old=$('#toast'); if(old) old.remove(); const t=document.createElement('div'); t.id='toast'; t.textContent=msg; t.style.background = err ? '#3a1020' : '#101a33'; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); }
+function hideSummary(){ const o=$('#summaryOverlay'); if(o) o.remove(); }
+function showSummary(){ const ok=QUESTIONS.filter(q=>q.isCorrect).length; const tot=QUESTIONS.length; const wrong=tot-ok; hideSummary(); const o=document.createElement('div'); o.id='summaryOverlay'; const c=document.createElement('div'); c.id='summaryCard'; c.innerHTML=`<h2>Resultados</h2><p>Puntaje: ${ok}/${tot} (${Math.round(100*ok/tot)}%)</p><p>Correctas: ${ok} | Incorrectas: ${wrong}</p><button id="summaryClose">Cerrar</button>`; o.appendChild(c); o.addEventListener('click',e=>{ if(e.target.id==='summaryOverlay') hideSummary(); }); document.body.appendChild(o); $('#summaryClose').addEventListener('click', hideSummary); }
+function buildReportText(){ const ok=QUESTIONS.filter(q=>q.isCorrect).length; const tot=QUESTIONS.length; let txt=`Resultados Quiz - Funciones Lineales y Afines\nPuntaje: ${ok}/${tot}\n`; QUESTIONS.forEach((q,i)=>{ txt+=`Q${i+1}: ${q.stem}\nResp: ${q.userChoice!==null?q.choices[q.userChoice]:'(sin respuesta)'}\nCorrecta: ${q.choices[q.correct]}\nResultado: ${q.isCorrect?'CORRECTA':'INCORRECTA'}\n\n`; }); return txt; }
+async function sendAutoReport(){ const summary=buildReportText(); try{ const body=new URLSearchParams(); body.set('summaryText', summary); await fetch(REPORT_ENDPOINT,{ method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString(), mode:'no-cors', keepalive:true }); showToast('Resultados enviados'); }catch(e){ console.error(e); showToast('No se pudo enviar', true); } }
+
+/********* Bind & bootstrap *********/
+function bind(){ $('#btnEnviar').addEventListener('click', gradeAll); $('#btnReiniciar').addEventListener('click', ()=>{ seed(); renderStage(); }); $('#btnPrev').addEventListener('click', goPrev); $('#btnNext').addEventListener('click', goNext); $('#btnRevisar').addEventListener('click', revisarActual); }
+function seed(){ QUESTIONS = makeQuestions(); current=0; }
+
+document.addEventListener('DOMContentLoaded', ()=>{ seed(); renderStage(); bind(); selfTests(); });
+
+/********* Tests (no romper) *********/
+function selfTests(){ const results=[]; const log=(ok,msg)=>{ (ok?console.log:console.error)('[TEST '+(ok?'OK':'FAIL')+']', msg); results.push({ok,msg}); };
+ try{ log(typeof makeQuestions==='function','makeQuestions existe'); }catch(e){ log(false,'makeQuestions ausente'); }
+ try{ log(Array.isArray(QUESTIONS) && QUESTIONS.length>0,'QUESTIONS seed OK'); }catch(e){ log(false,'QUESTIONS vacio'); }
+ try{ log(!!document.getElementById('mapa'),'mapa presente'); }catch(e){ log(false,'faltante mapa'); }
+ try{ const chips=document.querySelectorAll('#mapa .chip'); log(chips.length===QUESTIONS.length,'chips == preguntas'); }catch(e){ log(false,'chips incorrectos'); }
+ try{ log(document.getElementById('btnNext') instanceof HTMLElement,'btnNext existe'); }catch(e){ log(false,'btnNext ausente'); }
+ try{ goTo(QUESTIONS.length-1); document.getElementById('btnNext').click(); log(!!document.getElementById('summaryOverlay'),'Next en ultima muestra resumen'); hideSummary(); goTo(0); }catch(e){ log(false,'flujo Next ultima'); }
+ window.__QUIZ_TESTS__=results; }
 </script>
 </body>
 </html>
