@@ -52,15 +52,7 @@
     .footer-actions{position:fixed; bottom:0; left:0; right:0; background:linear-gradient(180deg, rgba(17,24,46,.1), rgba(17,24,46,.9)); backdrop-filter: blur(6px); border-top:1px solid rgba(255,255,255,.08); z-index:1000}
     .footer-actions .wrap{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
 
-    .modal-ov{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.6); z-index:1500}
-    .modal{background:var(--panel); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:20px; max-width:520px; width:92%}
-    .modal h3{margin:0 0 10px 0}
-    .stat{display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed rgba(255,255,255,.15)}
-    .stat:last-child{border-bottom:0}
-    .modal .input{width:100%; margin-top:10px}
-    .modal .actions{display:flex; gap:8px; justify-content:flex-end; margin-top:14px}
-
-    @media print{ header, .footer-actions, .modal-ov{display:none} body{background:#fff; color:#000} .panel, .qcard{background:#fff; color:#000; border-color:#888} .chip{border:1px solid #000} }
+    @media print{ header, .footer-actions{display:none} body{background:#fff; color:#000} .panel, .qcard{background:#fff; color:#000; border-color:#888} .chip{border:1px solid #000} }
   </style>
 </head>
 <body>
@@ -95,21 +87,6 @@
       <button id="btnPrev" class="secondary">Anterior</button>
       <button id="btnRevisar" class="warn">Revisar</button>
       <button id="btnNext">Siguiente</button>
-    </div>
-  </div>
-
-  <div id="modalOv" class="modal-ov" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal">
-      <h3 id="modalTitle">Resumen de resultados</h3>
-      <div id="modalBody"></div>
-      <div class="actions">
-        <input id="studentName" class="input" type="text" placeholder="Nombre del estudiante" />
-        <button id="btnSend">Enviar al profesor</button>
-        <button id="btnWA">WhatsApp</button>
-        <button id="btnSMS">SMS</button>
-        <button id="btnCopy">Copiar</button>
-        <button id="btnCloseModal">Cerrar</button>
-      </div>
     </div>
   </div>
 
@@ -202,48 +179,75 @@ function getSelected(){ const checked=document.querySelector('input[name=q_'+cur
 
 function revisarActual(){ const q=QUESTIONS[current]; if(q.isGraded) return; const sel=getSelected(); q.userChoice=sel; q.isGraded=true; q.isCorrect=(sel!==null)&&!!q.choices[sel]&&!!q.choices[sel].correct; (q.isCorrect?SFX.correct:SFX.incorrect)(); renderStage(); }
 
-function gradeAll(){ QUESTIONS.forEach(q=>{ if(!q.isGraded){ q.isGraded=true; const sel=q.userChoice; q.isCorrect=(sel!==null)&&!!q.choices[sel]&&!!q.choices[sel].correct; } }); renderStage(); showResultsModal(); }
+function gradeAll(){
+  // Califica todo y envía el reporte automáticamente (sin modales ni redirecciones)
+  QUESTIONS.forEach(q=>{ if(!q.isGraded){ q.isGraded=true; const sel=q.userChoice; q.isCorrect=(sel!==null)&&!!q.choices[sel]&&!!q.choices[sel].correct; } });
+  renderStage();
+  updateScoreChip();
+  sendAutoReport();
+}
+
 function score(){ return QUESTIONS.reduce((acc,q)=> acc+(q.isCorrect?1:0), 0); }
 function updateScoreChip(){ const s=score(); const total=QUESTIONS.length; const pct=Math.round(100*s/total); document.getElementById('scoreChip').textContent='Puntaje: '+s+'/'+total+' ('+pct+'%)'; }
 
-// ========= Modal y envíos =========
+// ========= Modal/envío =========
 const TEACHER_EMAIL='veitmeza@gmail.com';
 const TEACHER_PHONE='+56961410052';
-const REPORT_ENDPOINT='';
+const REPORT_ENDPOINT='https://script.google.com/macros/s/AKfycbxmFgBXEzfI-0YRy3Ubs18FwXMjBJH4XGkLt32kCRHIVFkyPJggsBVL9NplmxuFzZ_y/exec';
 
 function buildReport(){ const total=QUESTIONS.length; const correct=score(); const incorrect=total-correct; const pct=Math.round(100*correct/total); const perQ=QUESTIONS.map((q,i)=>({ n:i+1, context:q.context, skill:q.skill, stem:q.stem, answer:q.userChoice!==null? q.choices[q.userChoice].text:null, correct:q.choices.find(c=>c.correct).text, isCorrect:q.isCorrect })); return { total, correct, incorrect, pct, perQ }; }
-function buildReportText(name){ const dt=new Date().toLocaleString('es-CL'); const r=buildReport(); const lines=[ 'Resultados Quiz - Funciones Lineales y Afines', 'Estudiante: '+(name||'(sin nombre)'), 'Fecha: '+dt, 'Puntaje: '+r.correct+'/'+r.total+' ('+r.pct+'%)', 'Correctas: '+r.correct+' | Incorrectas: '+r.incorrect, '', 'Detalle por pregunta:' ]; r.perQ.forEach(x=>{ lines.push(x.n+'. ['+x.context+'/'+x.skill+']'); lines.push('   Enunciado: '+x.stem); lines.push('   Respuesta: '+(x.answer||'—')); lines.push('   Correcta: '+x.correct); lines.push('   Resultado: '+(x.isCorrect?'CORRECTA':'INCORRECTA')); }); return lines.join('\n'); }
+function buildReportText(name){ const dt=new Date().toLocaleString('es-CL'); const r=buildReport(); const lines=[ 'Resultados Quiz - Funciones Lineales y Afines', 'Estudiante: '+(name||'(omitido)'), 'Fecha: '+dt, 'Puntaje: '+r.correct+'/'+r.total+' ('+r.pct+'%)', 'Correctas: '+r.correct+' | Incorrectas: '+r.incorrect, '', 'Detalle por pregunta:' ]; r.perQ.forEach(x=>{ lines.push(x.n+'. ['+x.context+'/'+x.skill+']'); lines.push('   Enunciado: '+x.stem); lines.push('   Respuesta: '+(x.answer||'—')); lines.push('   Correcta: '+x.correct); lines.push('   Resultado: '+(x.isCorrect?'CORRECTA':'INCORRECTA')); }); return lines.join('
+'); }
 
-function showResultsModal(){ const total=QUESTIONS.length; const correct=score(); const incorrect=total-correct; const pctOK=Math.round(100*correct/total); const pctBad=100-pctOK; const body=document.getElementById('modalBody'); body.innerHTML='<div class="stat"><strong>Correctas</strong><span>'+correct+'/'+total+' ('+pctOK+'%)</span></div><div class="stat"><strong>Incorrectas</strong><span>'+incorrect+'/'+total+' ('+pctBad+'%)</span></div>'; document.getElementById('modalOv').style.display='flex'; }
-function hideResultsModal(){ document.getElementById('modalOv').style.display='none'; }
-
-async function sendResults(){ const name=(document.getElementById('studentName')&&document.getElementById('studentName').value||'').trim(); if(!name){ alert('Ingresa el nombre del estudiante.'); return; } const reportText=buildReportText(name); if(REPORT_ENDPOINT){ try{ const res=await fetch(REPORT_ENDPOINT,{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, report: buildReport(), reportText })}); if(!res.ok) throw new Error('HTTP '+res.status); alert('Resultados enviados al profesor (endpoint).'); return; }catch(e){ console.warn('POST falló, se usará mailto:', e); } } const subject=encodeURIComponent('Resultados Quiz - '+name); const body=encodeURIComponent(reportText); const href='mailto:'+encodeURIComponent(TEACHER_EMAIL)+'?subject='+subject+'&body='+body; window.location.href=href; }
-function sendWhatsApp(){ const name=(document.getElementById('studentName')&&document.getElementById('studentName').value||'').trim(); if(!name){ alert('Ingresa el nombre del estudiante.'); return; } const txt=buildReportText(name); const phone=TEACHER_PHONE.replace(/[^0-9]/g,''); const url='https://wa.me/'+phone+'?text='+encodeURIComponent(txt); window.open(url,'_blank'); }
-function sendSMS(){ const name=(document.getElementById('studentName')&&document.getElementById('studentName').value||'').trim(); if(!name){ alert('Ingresa el nombre del estudiante.'); return; } const txt=buildReportText(name); const url='sms:'+TEACHER_PHONE+'?body='+encodeURIComponent(txt); window.location.href=url; }
-async function copyResults(){ const name=(document.getElementById('studentName')&&document.getElementById('studentName').value||'').trim(); const reportText=buildReportText(name); try{ await navigator.clipboard.writeText(reportText); alert('Resumen copiado.'); }catch(e){ console.warn(e); } }
+async function sendAutoReport(){
+  const payload = {
+    teacherEmail: TEACHER_EMAIL,
+    teacherPhone: TEACHER_PHONE,
+    channel: 'email',
+    createdAt: new Date().toISOString(),
+    report: buildReport(),
+    summaryText: buildReportText('') // nombre omitido
+  };
+  try{
+    const bodyStr = JSON.stringify(payload);
+    if(navigator.sendBeacon){
+      const blob = new Blob([bodyStr], {type: 'application/json'});
+      navigator.sendBeacon(REPORT_ENDPOINT, blob);
+      console.log('[Quiz] Envío con sendBeacon');
+      return true;
+    }
+    // Fallback sin CORS visible para evitar bloqueos
+    await fetch(REPORT_ENDPOINT, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain'},
+      body: bodyStr,
+      keepalive: true,
+      mode: 'no-cors'
+    });
+    console.log('[Quiz] Envío con fetch no-cors');
+    return true;
+  }catch(err){
+    console.error('[Quiz] Error enviando reporte:', err);
+    return false;
+  }
+}
 
 // ========= Controles =========
 function startQuiz(){ seedQuiz(); current=0; renderStage(); }
-function restart(){ hideResultsModal(); startQuiz(); }
+function restart(){ startQuiz(); }
 
-function bind(){ document.getElementById('btnEnviar').addEventListener('click', gradeAll);
+function bind(){
+  document.getElementById('btnEnviar').addEventListener('click', gradeAll);
   document.getElementById('btnReiniciar').addEventListener('click', ()=>{ SFX.click(); restart(); });
   document.getElementById('btnPrev').addEventListener('click', ()=>{ SFX.click(); goTo(current-1); });
   document.getElementById('btnNext').addEventListener('click', ()=>{ SFX.click(); goTo(current+1); });
   document.getElementById('btnRevisar').addEventListener('click', revisarActual);
-
-  document.getElementById('btnCloseModal').addEventListener('click', ()=>{ SFX.click(); hideResultsModal(); });
-  document.getElementById('btnSend').addEventListener('click', sendResults);
-  document.getElementById('btnCopy').addEventListener('click', copyResults);
-  document.getElementById('btnWA').addEventListener('click', sendWhatsApp);
-  document.getElementById('btnSMS').addEventListener('click', sendSMS);
-
   wireSfx();
 }
 
 document.addEventListener('DOMContentLoaded', ()=>{ bind(); startQuiz(); runSelfTests(); });
 
-// ========= Tests ligeros (sanity checks) =========
+// ========= Tests ligeros =========
 function runSelfTests(){
   const results=[]; const fail=(m)=>{ console.error('[TEST FAIL]', m); results.push({ok:false, m}); };
   const pass=(m)=>{ console.log('[TEST OK]', m); results.push({ok:true, m}); };
@@ -252,8 +256,9 @@ function runSelfTests(){
   try{ if(!document.getElementById('stage')) fail('stage no existe'); else pass('stage presente'); }catch(e){ fail('error stage'); }
   try{ if(!Array.isArray(QUESTIONS) || QUESTIONS.length===0) fail('QUESTIONS vacío tras start'); else pass('QUESTIONS con items'); }catch(e){ fail('error QUESTIONS'); }
   try{ const s=document.getElementById('stage'); if(!s.querySelector('.choice')) fail('no hay alternativas renderizadas'); else pass('alternativas renderizadas'); }catch(e){ fail('error render'); }
-  try{ const txt=buildReportText('Prueba'); if(typeof txt!=="string" || !txt.includes('\n')) fail('buildReportText no retorna texto con \n'); else pass('buildReportText ok'); }catch(e){ fail('buildReportText lanzó error'); }
-  window.__QUIZ_TESTS__=results; // disponible en consola
+  try{ const txt=buildReportText(''); if(typeof txt!=="string" || !txt.includes('
+')) fail('buildReportText no retorna texto con \n'); else pass('buildReportText ok'); }catch(e){ fail('buildReportText lanzó error'); }
+  window.__QUIZ_TESTS__=results;
 }
   </script>
 </body>
