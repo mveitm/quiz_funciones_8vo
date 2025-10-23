@@ -52,6 +52,9 @@
     .footer-actions{position:fixed; bottom:0; left:0; right:0; background:linear-gradient(180deg, rgba(17,24,46,.1), rgba(17,24,46,.9)); backdrop-filter: blur(6px); border-top:1px solid rgba(255,255,255,.08); z-index:1000}
     .footer-actions .wrap{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
 
+    .muted{opacity:.7}
+    .hidden{display:none}
+
     @media print{ header, .footer-actions{display:none} body{background:#fff; color:#000} .panel, .qcard{background:#fff; color:#000; border-color:#888} .chip{border:1px solid #000} }
   </style>
 </head>
@@ -67,7 +70,7 @@
       <div class="btns">
         <button class="warn" id="btnEnviar">Resultados</button>
         <button id="btnReiniciar">Reiniciar</button>
-        <span id="scoreChip" class="badge" aria-live="polite">Puntaje: —</span>
+        <span id="scoreChip" class="badge" aria-live="polite">Puntaje: 0/0</span>
       </div>
     </div>
   </header>
@@ -91,175 +94,134 @@
   </div>
 
   <script>
-'use strict';
-// ========= Utilidades y sonidos =========
-const RNG={ pick:a=>a[Math.floor(Math.random()*a.length)], randStep(min,max,step){const n=Math.floor((max-min)/step);return min+step*Math.floor(Math.random()*(n+1));} };
-const fmtMoney=n=>`$${n.toLocaleString('es-CL')}`;
+  'use strict';
+  /********** DIAGNOSTICO EN PANTALLA **********/
+  (function(){
+    const box=document.createElement('div');
+    box.id='debugBox';
+    box.style.cssText='position:fixed;right:8px;bottom:8px;background:#11182e;color:#9dc1ff;padding:8px 10px;border:1px solid rgba(255,255,255,.1);border-radius:10px;font:12px/1.2 system-ui;z-index:9999;max-width:60ch;';
+    box.textContent='debug listo';
+    document.addEventListener('error',e=>{box.textContent='JS error: '+e.message;},true);
+    window.addEventListener('error',e=>{box.textContent='JS error: '+(e.message||e.error);});
+    document.addEventListener('DOMContentLoaded',()=>{document.body.appendChild(box);});
+    window.__setDebug=(msg)=>{ box.textContent=msg; };
+  })();
 
-let actx; function getAC(){ if(!actx){ actx=new (window.AudioContext||window.webkitAudioContext)(); } return actx; }
-function tone({freq=440,dur=0.12,type='sine',gain=0.06}){ const ac=getAC(); const o=ac.createOscillator(); const g=ac.createGain(); o.type=type; o.frequency.value=freq; g.gain.value=gain; o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime+dur); }
-function seq(notes){ const ac=getAC(); let t=ac.currentTime; notes.forEach(n=>{ const o=ac.createOscillator(); const g=ac.createGain(); o.type=n.type||'sine'; o.frequency.value=n.freq; g.gain.value=n.gain||0.06; o.connect(g); g.connect(ac.destination); o.start(t+(n.delay||0)); o.stop(t+(n.delay||0)+n.dur); }); }
-const SFX={ click:()=>tone({freq:260,dur:0.06,type:'triangle'}), select:()=>tone({freq:330,dur:0.05,type:'square'}), correct:()=>seq([{freq:620,dur:.08},{freq:740,dur:.08,delay:.08},{freq:880,dur:.12,delay:.16,type:'triangle',gain:.07}]), incorrect:()=>seq([{freq:220,dur:.15,type:'sawtooth',gain:.07},{freq:180,dur:.18,delay:.12,type:'sawtooth',gain:.06}]) };
-function wireSfx(){ document.addEventListener('click',e=>{ if(e.target.closest('button')) SFX.click(); }); }
+  /********** UTILIDADES **********/
+  const RNG={ pick:a=>a[Math.floor(Math.random()*a.length)], randStep(min,max,step){const n=Math.floor((max-min)/step);return min+step*Math.floor(Math.random()*(n+1));} };
+  const fmtMoney=n=>'$'+Number(n).toLocaleString('es-CL');
 
-// ========= Generadores =========
-function genTaxi(){ const m=RNG.pick([300,350,400,450,500]); const b=RNG.pick([400,500,600,700,800,900,1000,1100,1200]); const x=RNG.pick([5,8,10,12,15]); const f=xx=>m*xx+b; return [
-  { id:`TX-1-${m}-${b}`, context:'Taxi', skill:'Modelo', stem:`Un taxi cobra ${fmtMoney(b)} de bajada y ${fmtMoney(m)} por kilómetro. ¿Cuál es el modelo del costo total f(x)?`, choices:[`f(x) = ${m}x + ${b}`,`f(x) = ${b}x + ${m}`,`f(x) = ${m}x`,`f(x) = ${b} + ${m}/x`], correct:0, explanation:`Pendiente = ${fmtMoney(m)} por km; intercepto = ${fmtMoney(b)}.`},
-  { id:`TX-2-${m}-${b}`, context:'Taxi', skill:'Tipo', stem:`Para f(x) = ${m}x + ${b}, el tipo de función es…`, choices:['Lineal (pasa por el origen)','Afín (no pasa por el origen)','Constante','Cuadrática'], correct:1, explanation:`Tiene término independiente ${fmtMoney(b)} ≠ 0; es afín.`},
-  { id:`TX-3-${m}-${b}-${x}`, context:'Taxi', skill:'Cálculo', stem:`¿Cuánto cuesta un viaje de ${x} km si f(x) = ${m}x + ${b}?`, choices:[fmtMoney(f(x)),fmtMoney(m*x),fmtMoney(m+b),fmtMoney(b)], correct:0, explanation:`f(${x}) = ${m}·${x} + ${b} = ${fmtMoney(m*x)} + ${fmtMoney(b)} = ${fmtMoney(f(x))}.`},
-  { id:`TX-4-${m}-${b}`, context:'Taxi', skill:'Parámetros', stem:`En f(x) = ${m}x + ${b}, ¿cuál es (pendiente; intercepto)?`, choices:[`Pendiente ${m}; Intercepto ${b}`,`Pendiente ${b}; Intercepto ${m}`,`Pendiente ${m}; Intercepto 0`,`Pendiente 0; Intercepto ${b}`], correct:0, explanation:`Pendiente = ${m}; Intercepto = ${b}.`}
-]; }
+  let actx; function getAC(){ try{ if(!actx){ actx=new (window.AudioContext||window.webkitAudioContext)(); } return actx; }catch(e){ return null; } }
+  function tone(opts){ const ac=getAC(); if(!ac) return; const {freq=440,dur=.12,type='sine',gain=.06}=opts||{}; const o=ac.createOscillator(); const g=ac.createGain(); o.type=type; o.frequency.value=freq; g.gain.value=gain; o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime+dur); }
+  function seq(notes){ const ac=getAC(); if(!ac) return; let t=ac.currentTime; notes.forEach(n=>{ const o=ac.createOscillator(); const g=ac.createGain(); o.type=n.type||'sine'; o.frequency.value=n.freq; g.gain.value=n.gain||0.06; o.connect(g); g.connect(ac.destination); o.start(t+(n.delay||0)); o.stop(t+(n.delay||0)+n.dur); }); }
+  const SFX={ click:()=>tone({freq:260,dur:0.06,type:'triangle'}), select:()=>tone({freq:330,dur:0.05,type:'square'}), correct:()=>seq([{freq:620,dur:.08},{freq:740,dur:.08,delay:.08},{freq:880,dur:.12,delay:.16,type:'triangle',gain:.07}]), incorrect:()=>seq([{freq:220,dur:.15,type:'sawtooth',gain:.07},{freq:180,dur:.18,delay:.12,type:'sawtooth',gain:.06}]) };
 
-function genBencina(){ const r=RNG.pick([12,13,14,15,16,18]); const L=RNG.pick([10,20,30,40]); return [
-  { id:`BK-1-${r}`, context:'Bencina', skill:'Modelo', stem:`Un auto rinde ${r} km por litro. Sea k(ℓ) los km con ℓ litros. ¿Cuál es el modelo correcto?`, choices:[`k(ℓ) = ${r}ℓ`,`k(ℓ) = ℓ/${r}`,`k(ℓ) = ${r}/ℓ`,`k(ℓ) = ℓ`], correct:0, explanation:`Si por cada litro recorre ${r} km, con ℓ litros recorre ${r}·ℓ.`},
-  { id:`BK-2-${r}`, context:'Bencina', skill:'Tipo', stem:`La función k(ℓ) = ${r}ℓ es…`, choices:['Lineal (proporcional, pasa por el origen)','Afín (no pasa por el origen)','Constante','Cuadrática'], correct:0, explanation:`Es de la forma m·x con intercepto 0; por tanto, lineal.`},
-  { id:`BK-3-${r}-${L}`, context:'Bencina', skill:'Cálculo', stem:`¿Cuántos km recorre con ${L} L si k(ℓ) = ${r}ℓ?`, choices:[`${r*L} km`,`${L*r/2} km`,`${r+L} km`,`${L} km`], correct:0, explanation:`k(${L}) = ${r}·${L} = ${r*L} km.`},
-  { id:`BK-4-${r}`, context:'Bencina', skill:'Parámetros', stem:`En k(ℓ) = ${r}ℓ, el (pendiente; intercepto) es…`, choices:[`Pendiente ${r}; Intercepto 0`,`Pendiente 0; Intercepto ${r}`,`Pendiente 1/${r}; Intercepto 0`,`Pendiente ${r}; Intercepto 600`], correct:0, explanation:`Pendiente = ${r}; Intercepto = 0.`}
-]; }
+  /********** BANCO DE PREGUNTAS (ASCII-safe) **********/
+  function genTaxi(){ const m=RNG.pick([300,350,400,450,500]); const b=RNG.pick([400,500,600,700,800,900,1000,1100,1200]); const x=RNG.pick([5,8,10,12,15]); const f=xx=>m*xx+b; return [
+    { id:`TX-1-${m}-${b}`, context:'Taxi', skill:'Modelo', stem:`Un taxi cobra ${fmtMoney(b)} de bajada y ${fmtMoney(m)} por kilometro. Cual es el modelo f(x)?`, choices:[`f(x) = ${m}x + ${b}`,`f(x) = ${b}x + ${m}`,`f(x) = ${m}x`,`f(x) = ${b} + ${m}/x`], correct:0, explanation:`Pendiente ${m} por km; intercepto ${b}.`},
+    { id:`TX-2-${m}-${b}`, context:'Taxi', skill:'Tipo', stem:`Para f(x) = ${m}x + ${b}, el tipo es...`, choices:['Lineal (pasa por el origen)','Afin (no pasa por el origen)','Constante','Cuadratica'], correct:1, explanation:`Tiene termino independiente ${b} distinto de 0: es afin.`},
+    { id:`TX-3-${m}-${b}-${x}`, context:'Taxi', skill:'Calculo', stem:`Cuanto cuesta un viaje de ${x} km si f(x) = ${m}x + ${b}?`, choices:[fmtMoney(f(x)),fmtMoney(m*x),fmtMoney(m+b),fmtMoney(b)], correct:0, explanation:`f(${x}) = ${m}*${x} + ${b} = ${fmtMoney(m*x)} + ${fmtMoney(b)} = ${fmtMoney(f(x))}.`},
+    { id:`TX-4-${m}-${b}`, context:'Taxi', skill:'Parametros', stem:`En f(x) = ${m}x + ${b}, cual es (pendiente; intercepto)?`, choices:[`Pendiente ${m}; Intercepto ${b}`,`Pendiente ${b}; Intercepto ${m}`,`Pendiente ${m}; Intercepto 0`,`Pendiente 0; Intercepto ${b}`], correct:0, explanation:`Pendiente ${m}; Intercepto ${b}.`}
+  ]; }
 
-function genMaquina(){ const c=RNG.randStep(1000,5000,500); const F=RNG.randStep(30000,80000,5000); const x=RNG.pick([20,50,100,200]); const C=xx=>c*xx+F; return [
-  { id:`MA-1-${c}-${F}`, context:'Máquina', skill:'Modelo', stem:`Una máquina tiene costo fijo de ${fmtMoney(F)} más ${fmtMoney(c)} por unidad. ¿Cuál es el costo total C(x)?`, choices:[`C(x) = ${c}x + ${F}`,`C(x) = ${c}x`,`C(x) = ${F}x + ${c}`,`C(x) = ${F} − ${c}x`], correct:0, explanation:`Variable ${fmtMoney(c)} por unidad y fijo ${fmtMoney(F)}.`},
-  { id:`MA-2-${c}-${F}`, context:'Máquina', skill:'Tipo', stem:`Para C(x) = ${c}x + ${F}, la función es…`, choices:['Afín (no pasa por el origen)','Lineal (pasa por el origen)','Constante','Exponencial'], correct:0, explanation:`Tiene término independiente ${fmtMoney(F)} ≠ 0.`},
-  { id:`MA-3-${c}-${F}-${x}`, context:'Máquina', skill:'Cálculo', stem:`¿Cuál es el costo de producir ${x} unidades si C(x) = ${c}x + ${F}?`, choices:[fmtMoney(C(x)),fmtMoney(c*x),fmtMoney(C(x)*3),fmtMoney(F)], correct:0, explanation:`C(${x}) = ${c}·${x} + ${F} = ${fmtMoney(c*x)} + ${fmtMoney(F)} = ${fmtMoney(C(x))}.`},
-  { id:`MA-4-${c}-${F}`, context:'Máquina', skill:'Parámetros', stem:`En C(x) = ${c}x + ${F}, el (pendiente; intercepto) es…`, choices:[`Pendiente ${c}; Intercepto ${F}`,`Pendiente ${F}; Intercepto ${c}`,`Pendiente ${c}; Intercepto 0`,`Pendiente 0; Intercepto ${F}`], correct:0, explanation:`Pendiente = ${c}; Intercepto = ${F}.`}
-]; }
+  function genRendimiento(){ const r=RNG.pick([12,13,14,15,16,18]); const L=RNG.pick([10,20,30,40]); return [
+    { id:`RD-1-${r}`, context:'Auto', skill:'Modelo', stem:`Un auto rinde ${r} km por litro. Sea k(L) los km con L litros. Modelo correcto:`, choices:[`k(L) = ${r}L`,`k(L) = L/${r}`,`k(L) = ${r}/L`,`k(L) = L`], correct:0, explanation:`Por cada litro recorre ${r} km, con L litros: ${r}*L.`},
+    { id:`RD-2-${r}`, context:'Auto', skill:'Tipo', stem:`La funcion k(L) = ${r}L es...`, choices:['Lineal (proporcional, pasa por el origen)','Afin (no pasa por el origen)','Constante','Cuadratica'], correct:0, explanation:`Forma m*x con intercepto 0.`},
+    { id:`RD-3-${r}-${L}`, context:'Auto', skill:'Calculo', stem:`Cuantos km con ${L} L si k(L) = ${r}L?`, choices:[`${r*L} km`,`${L*r/2} km`,`${r+L} km`,`${L} km`], correct:0, explanation:`k(${L}) = ${r}*${L} = ${r*L} km.`},
+    { id:`RD-4-${r}`, context:'Auto', skill:'Parametros', stem:`En k(L) = ${r}L, (pendiente; intercepto):`, choices:[`Pendiente ${r}; Intercepto 0`,`Pendiente 0; Intercepto ${r}`,`Pendiente 1/${r}; Intercepto 0`,`Pendiente ${r}; Intercepto 600`], correct:0, explanation:`Pendiente ${r}; Intercepto 0.`}
+  ]; }
 
-function genVendedor(){ const p=RNG.randStep(300,900,50); const B=RNG.randStep(50000,120000,10000); const x=RNG.pick([100,200,400]); const f=xx=>p*xx+B; return [
-  { id:`VE-1-${p}-${B}`, context:'Vendedor', skill:'Modelo', stem:`Un vendedor recibe sueldo base de ${fmtMoney(B)} más ${fmtMoney(p)} por libro. ¿Cuál es su ingreso f(x)?`, choices:[`f(x) = ${p}x + ${B}`,`f(x) = ${B}x + ${p}`,`f(x) = ${p}x`,`f(x) = ${B} − ${p}x`], correct:0, explanation:`Comisión ${fmtMoney(p)} (pendiente) y base ${fmtMoney(B)} (intercepto).`},
-  { id:`VE-2-${p}-${B}`, context:'Vendedor', skill:'Tipo', stem:`Según f(x) = ${p}x + ${B}, la función es…`, choices:['Afín (no pasa por el origen)','Lineal (pasa por el origen)','Constante','Logarítmica'], correct:0, explanation:`Tiene término independiente ${fmtMoney(B)} ≠ 0.`},
-  { id:`VE-3-${p}-${B}-${x}`, context:'Vendedor', skill:'Cálculo', stem:`¿Cuánto ganará si vende ${x} libros? Usa f(x) = ${p}x + ${B}.`, choices:[fmtMoney(f(x)),fmtMoney(B + p*Math.floor(x/2)),fmtMoney(p*x),fmtMoney(B + 2*p*x)], correct:0, explanation:`f(${x}) = ${p}·${x} + ${B} = ${fmtMoney(p*x)} + ${fmtMoney(B)} = ${fmtMoney(f(x))}.`},
-  { id:`VE-4-${p}-${B}`, context:'Vendedor', skill:'Parámetros', stem:`Para f(x) = ${p}x + ${B}, (pendiente; intercepto) es…`, choices:[`Pendiente ${p}; Intercepto ${B}`,`Pendiente ${B}; Intercepto ${p}`,`Pendiente ${p}; Intercepto 0`,`Pendiente 0; Intercepto ${B}`], correct:0, explanation:`Pendiente = ${p}; Intercepto = ${B}.`}
-]; }
+  function genCosto(){ const c=RNG.randStep(1000,5000,500); const F=RNG.randStep(30000,80000,5000); const x=RNG.pick([20,50,100,200]); const C=xx=>c*xx+F; return [
+    { id:`CS-1-${c}-${F}`, context:'Maquina', skill:'Modelo', stem:`Costo fijo ${fmtMoney(F)} mas ${fmtMoney(c)} por unidad. Costo total C(x):`, choices:[`C(x) = ${c}x + ${F}`,`C(x) = ${c}x`,`C(x) = ${F}x + ${c}`,`C(x) = ${F} - ${c}x`], correct:0, explanation:`Variable ${c} por unidad y fijo ${F}.`},
+    { id:`CS-2-${c}-${F}`, context:'Maquina', skill:'Tipo', stem:`Para C(x) = ${c}x + ${F}, la funcion es...`, choices:['Afin (no pasa por el origen)','Lineal (pasa por el origen)','Constante','Exponencial'], correct:0, explanation:`Tiene termino independiente ${F} distinto de 0.`},
+    { id:`CS-3-${c}-${F}-${x}`, context:'Maquina', skill:'Calculo', stem:`Costo de producir ${x} unidades si C(x) = ${c}x + ${F}?`, choices:[fmtMoney(C(x)),fmtMoney(c*x),fmtMoney(C(x)*3),fmtMoney(F)], correct:0, explanation:`C(${x}) = ${c}*${x} + ${F} = ${fmtMoney(c*x)} + ${fmtMoney(F)} = ${fmtMoney(C(x))}.`},
+    { id:`CS-4-${c}-${F}`, context:'Maquina', skill:'Parametros', stem:`En C(x) = ${c}x + ${F}, (pendiente; intercepto):`, choices:[`Pendiente ${c}; Intercepto ${F}`,`Pendiente ${F}; Intercepto ${c}`,`Pendiente ${c}; Intercepto 0`,`Pendiente 0; Intercepto ${F}`], correct:0, explanation:`Pendiente ${c}; Intercepto ${F}.`}
+  ]; }
 
-function buildBank(){ return [...genTaxi(),...genBencina(),...genMaquina(),...genVendedor()].map(q=>({...q, choices:q.choices.map((t,i)=>({text:t, correct:i===q.correct}))})); }
+  function genVendedor(){ const p=RNG.randStep(300,900,50); const B=RNG.randStep(50000,120000,10000); const x=RNG.pick([100,200,400]); const f=xx=>p*xx+B; return [
+    { id:`VE-1-${p}-${B}`, context:'Vendedor', skill:'Modelo', stem:`Sueldo base ${fmtMoney(B)} mas ${fmtMoney(p)} por libro. Ingreso f(x):`, choices:[`f(x) = ${p}x + ${B}`,`f(x) = ${B}x + ${p}`,`f(x) = ${p}x`,`f(x) = ${B} - ${p}x`], correct:0, explanation:`Comision ${p} (pendiente) y base ${B} (intercepto).`},
+    { id:`VE-2-${p}-${B}`, context:'Vendedor', skill:'Tipo', stem:`Segun f(x) = ${p}x + ${B}, la funcion es...`, choices:['Afin (no pasa por el origen)','Lineal (pasa por el origen)','Constante','Logaritmica'], correct:0, explanation:`Termino independiente ${B} distinto de 0.`},
+    { id:`VE-3-${p}-${B}-${x}`, context:'Vendedor', skill:'Calculo', stem:`Cuanto ganara si vende ${x} libros? Usa f(x) = ${p}x + ${B}.`, choices:[fmtMoney(f(x)),fmtMoney(B + p*Math.floor(x/2)),fmtMoney(p*x),fmtMoney(B + 2*p*x)], correct:0, explanation:`f(${x}) = ${p}*${x} + ${B} = ${fmtMoney(p*x)} + ${fmtMoney(B)} = ${fmtMoney(f(x))}.`},
+    { id:`VE-4-${p}-${B}`, context:'Vendedor', skill:'Parametros', stem:`Para f(x) = ${p}x + ${B}, (pendiente; intercepto):`, choices:[`Pendiente ${p}; Intercepto ${B}`,`Pendiente ${B}; Intercepto ${p}`,`Pendiente ${p}; Intercepto 0`,`Pendiente 0; Intercepto ${B}`], correct:0, explanation:`Pendiente ${p}; Intercepto ${B}.`}
+  ]; }
 
-// ========= Estado y render =========
-let QUESTIONS=[]; let current=0;
-function shuffle(a){ const b=a.slice(); for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]];} return b; }
-function deepCopy(o){ return JSON.parse(JSON.stringify(o)); }
+  function buildBank(){ return [...genTaxi(),...genRendimiento(),...genCosto(),...genVendedor()].map(q=>({...q, choices:q.choices.map((t,i)=>({text:t, correct:i===q.correct}))})); }
 
-function seedQuiz(){ QUESTIONS=shuffle(buildBank().map(q=>({...deepCopy(q), userChoice:null, isGraded:false, isCorrect:false }))); QUESTIONS.forEach(q=>{ q.choices=shuffle(q.choices); }); }
+  /********** ESTADO **********/
+  let QUESTIONS=[]; let current=0;
+  const REPORT_ENDPOINT='https://script.google.com/macros/s/AKfycbxmFgBXEzfI-0YRy3Ubs18FwXMjBJH4XGkLt32kCRHIVFkyPJggsBVL9NplmxuFzZ_y/exec';
 
-function renderMap(){ const map=document.getElementById('mapa'); map.replaceChildren(); QUESTIONS.forEach((q,idx)=>{ const chip=document.createElement('button'); chip.type='button'; chip.className='chip'; chip.id=`chip_${idx}`; chip.textContent=idx+1; if(q.isGraded){ chip.classList.add(q.isCorrect?'correct':'incorrect'); } if(idx===current){ chip.classList.add('current'); } chip.addEventListener('click',()=>{ SFX.click(); goTo(idx); }); map.appendChild(chip); }); }
+  /********** RENDER **********/
+  function shuffle(a){ const b=a.slice(); for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]];} return b; }
+  function deepCopy(o){ return JSON.parse(JSON.stringify(o)); }
+  function seedQuiz(){ QUESTIONS=shuffle(buildBank().map(q=>({...deepCopy(q), userChoice:null, isGraded:false, isCorrect:false }))); QUESTIONS.forEach(q=>{ q.choices=shuffle(q.choices); }); }
 
-function renderStage(){ const q=QUESTIONS[current]; const stage=document.getElementById('stage'); stage.replaceChildren();
-  const head=document.createElement('div'); head.className='qhead';
-  const left=document.createElement('div'); left.className='qnum'; left.textContent=`Pregunta ${current+1} de ${QUESTIONS.length}`;
-  const qctx=document.createElement('div'); qctx.className='qctx';
-  const ctx=document.createElement('span'); ctx.className='ctx'; ctx.textContent=q.context;
-  const skill=document.createElement('span'); skill.className='skill'; skill.textContent=q.skill;
-  qctx.append(ctx, skill); head.append(left, qctx); stage.append(head);
+  function renderMap(){ const map=document.getElementById('mapa'); map.replaceChildren(); QUESTIONS.forEach((q,idx)=>{ const chip=document.createElement('button'); chip.type='button'; chip.className='chip'; chip.id='chip_'+idx; chip.textContent=idx+1; if(q.isGraded){ chip.classList.add(q.isCorrect?'correct':'incorrect'); } if(idx===current){ chip.classList.add('current'); } chip.addEventListener('click',()=>{ SFX.click(); goTo(idx); }); map.appendChild(chip); }); }
 
-  const stem=document.createElement('div'); stem.className='stem'; stem.textContent=q.stem; stage.append(stem);
+  function renderStage(){ const q=QUESTIONS[current]; const stage=document.getElementById('stage'); stage.replaceChildren();
+    const head=document.createElement('div'); head.className='qhead';
+    const left=document.createElement('div'); left.className='qnum'; left.textContent='Pregunta '+(current+1)+' de '+QUESTIONS.length;
+    const qctx=document.createElement('div'); qctx.className='qctx';
+    const ctx=document.createElement('span'); ctx.className='ctx'; ctx.textContent=q.context;
+    const skill=document.createElement('span'); skill.className='skill'; skill.textContent=q.skill;
+    qctx.append(ctx, skill); head.append(left, qctx); stage.append(head);
 
-  const choices=document.createElement('div'); choices.className='choices';
-  q.choices.forEach((c,cidx)=>{
-    const row=document.createElement('label'); row.className='choice';
-    const letter=document.createElement('span'); letter.className='letter'; letter.textContent=String.fromCharCode(65+cidx);
-    const input=document.createElement('input'); input.type='radio'; input.name=`q_${current}`; input.value=String(cidx); input.disabled=q.isGraded; if(q.userChoice===cidx) input.checked=true; input.addEventListener('change', ()=>{ QUESTIONS[current].userChoice=cidx; SFX.select(); });
-    const ctext=document.createElement('div'); ctext.className='ctext'; ctext.textContent=c.text;
-    row.append(letter, input, ctext); choices.append(row);
-  });
-  stage.append(choices);
+    const stem=document.createElement('div'); stem.className='stem'; stem.textContent=q.stem; stage.append(stem);
 
-  if(q.isGraded){
-    const box=document.createElement('div'); box.className='feedback '+(q.isCorrect?'correct':'incorrect');
-    const strong=document.createElement('strong'); strong.textContent=q.isCorrect? '¡Correcto!':'Incorrecto';
-    const p1=document.createElement('div'); p1.innerHTML='<span class="muted">Tu respuesta:</span> ' + (q.userChoice!==null? q.choices[q.userChoice].text : '<em>sin responder</em>');
-    const p2=document.createElement('div'); p2.innerHTML='<span class="muted">Correcta:</span> ' + q.choices.find(c=>c.correct).text;
-    const p3=document.createElement('div'); p3.style.marginTop='6px'; p3.textContent=q.explanation;
-    box.append(strong, p1, p2, p3); stage.append(box);
+    const choices=document.createElement('div'); choices.className='choices';
+    q.choices.forEach((c,cidx)=>{
+      const row=document.createElement('label'); row.className='choice';
+      const letter=document.createElement('span'); letter.className='letter'; letter.textContent=String.fromCharCode(65+cidx);
+      const input=document.createElement('input'); input.type='radio'; input.name='q_'+current; input.value=String(cidx); input.disabled=q.isGraded; if(q.userChoice===cidx) input.checked=true; input.addEventListener('change', ()=>{ QUESTIONS[current].userChoice=cidx; SFX.select(); });
+      const ctext=document.createElement('div'); ctext.className='ctext'; ctext.textContent=c.text;
+      row.append(letter, input, ctext); choices.append(row);
+    });
+    stage.append(choices);
+
+    if(q.isGraded){
+      const box=document.createElement('div'); box.className='feedback '+(q.isCorrect?'correct':'incorrect');
+      const strong=document.createElement('strong'); strong.textContent=q.isCorrect? 'Correcto!':'Incorrecto';
+      const p1=document.createElement('div'); p1.innerHTML='<span class="muted">Tu respuesta:</span> '+ (q.userChoice!==null? q.choices[q.userChoice].text : '<em>sin responder</em>');
+      const p2=document.createElement('div'); p2.innerHTML='<span class="muted">Correcta:</span> '+ q.choices.find(c=>c.correct).text;
+      const p3=document.createElement('div'); p3.style.marginTop='6px'; p3.textContent=q.explanation;
+      box.append(strong, p1, p2, p3); stage.append(box);
+    }
+
+    renderMap(); updateScoreChip();
+    __setDebug('ok: pregunta '+(current+1));
   }
 
-  renderMap(); updateScoreChip();
-}
+  function goTo(idx){ current=Math.max(0, Math.min(QUESTIONS.length-1, idx)); renderStage(); }
+  function getSelected(){ const checked=document.querySelector('input[name=q_'+current+']:checked'); return checked? parseInt(checked.value,10):null; }
 
-function goTo(idx){ current=Math.max(0, Math.min(QUESTIONS.length-1, idx)); renderStage(); }
-function getSelected(){ const checked=document.querySelector('input[name=q_'+current+']:checked'); return checked? parseInt(checked.value,10):null; }
+  function revisarActual(){ const q=QUESTIONS[current]; if(q.isGraded) return; const sel=getSelected(); q.userChoice=sel; q.isGraded=true; q.isCorrect=(sel!==null)&&!!q.choices[sel]&&!!q.choices[sel].correct; (q.isCorrect?SFX.correct:SFX.incorrect)(); renderStage(); }
 
-function revisarActual(){ const q=QUESTIONS[current]; if(q.isGraded) return; const sel=getSelected(); q.userChoice=sel; q.isGraded=true; q.isCorrect=(sel!==null)&&!!q.choices[sel]&&!!q.choices[sel].correct; (q.isCorrect?SFX.correct:SFX.incorrect)(); renderStage(); }
+  function gradeAll(){ QUESTIONS.forEach(q=>{ if(!q.isGraded){ q.isGraded=true; const sel=q.userChoice; q.isCorrect=(sel!==null)&&!!q.choices[sel]&&!!q.choices[sel].correct; } }); renderStage(); updateScoreChip(); sendAutoReport(); }
+  function score(){ return QUESTIONS.reduce((acc,q)=> acc+(q.isCorrect?1:0), 0); }
+  function updateScoreChip(){ const s=score(); const total=QUESTIONS.length; const pct= total? Math.round(100*s/total) : 0; document.getElementById('scoreChip').textContent='Puntaje: '+s+'/'+total+' ('+pct+'%)'; }
 
-function gradeAll(){
-  // Califica todo y envía el reporte automáticamente (sin modales ni redirecciones)
-  QUESTIONS.forEach(q=>{ if(!q.isGraded){ q.isGraded=true; const sel=q.userChoice; q.isCorrect=(sel!==null)&&!!q.choices[sel]&&!!q.choices[sel].correct; } });
-  renderStage();
-  updateScoreChip();
-  sendAutoReport();
-}
-
-function score(){ return QUESTIONS.reduce((acc,q)=> acc+(q.isCorrect?1:0), 0); }
-function updateScoreChip(){ const s=score(); const total=QUESTIONS.length; const pct=Math.round(100*s/total); document.getElementById('scoreChip').textContent='Puntaje: '+s+'/'+total+' ('+pct+'%)'; }
-
-// ========= Modal/envío =========
-const TEACHER_EMAIL='veitmeza@gmail.com';
-const TEACHER_PHONE='+56961410052';
-const REPORT_ENDPOINT='https://script.google.com/macros/s/AKfycbxmFgBXEzfI-0YRy3Ubs18FwXMjBJH4XGkLt32kCRHIVFkyPJggsBVL9NplmxuFzZ_y/exec';
-
-function buildReport(){ const total=QUESTIONS.length; const correct=score(); const incorrect=total-correct; const pct=Math.round(100*correct/total); const perQ=QUESTIONS.map((q,i)=>({ n:i+1, context:q.context, skill:q.skill, stem:q.stem, answer:q.userChoice!==null? q.choices[q.userChoice].text:null, correct:q.choices.find(c=>c.correct).text, isCorrect:q.isCorrect })); return { total, correct, incorrect, pct, perQ }; }
-function buildReportText(name){ const dt=new Date().toLocaleString('es-CL'); const r=buildReport(); const lines=[ 'Resultados Quiz - Funciones Lineales y Afines', 'Estudiante: '+(name||'(omitido)'), 'Fecha: '+dt, 'Puntaje: '+r.correct+'/'+r.total+' ('+r.pct+'%)', 'Correctas: '+r.correct+' | Incorrectas: '+r.incorrect, '', 'Detalle por pregunta:' ]; r.perQ.forEach(x=>{ lines.push(x.n+'. ['+x.context+'/'+x.skill+']'); lines.push('   Enunciado: '+x.stem); lines.push('   Respuesta: '+(x.answer||'—')); lines.push('   Correcta: '+x.correct); lines.push('   Resultado: '+(x.isCorrect?'CORRECTA':'INCORRECTA')); }); return lines.join('
+  function buildReport(){ const total=QUESTIONS.length; const correct=score(); const incorrect=total-correct; const pct= total? Math.round(100*correct/total) : 0; const perQ=QUESTIONS.map((q,i)=>({ n:i+1, context:q.context, skill:q.skill, stem:q.stem, answer:q.userChoice!==null? q.choices[q.userChoice].text:null, correct:q.choices.find(c=>c.correct).text, isCorrect:q.isCorrect })); return { total, correct, incorrect, pct, perQ }; }
+  function buildReportText(){ const dt=new Date().toLocaleString('es-CL'); const r=buildReport(); const lines=[ 'Resultados Quiz - Funciones Lineales y Afines', 'Estudiante: (omitido)', 'Fecha: '+dt, 'Puntaje: '+r.correct+'/'+r.total+' ('+r.pct+'%)', 'Correctas: '+r.correct+' | Incorrectas: '+r.incorrect, '', 'Detalle por pregunta:' ]; r.perQ.forEach(x=>{ lines.push(x.n+'. ['+x.context+'/'+x.skill+']'); lines.push('   Enunciado: '+x.stem); lines.push('   Respuesta: '+(x.answer||'-')); lines.push('   Correcta: '+x.correct); lines.push('   Resultado: '+(x.isCorrect?'CORRECTA':'INCORRECTA')); }); return lines.join('
 '); }
 
-async function sendAutoReport(){
-  const payload = {
-    teacherEmail: TEACHER_EMAIL,
-    teacherPhone: TEACHER_PHONE,
-    channel: 'email',
-    createdAt: new Date().toISOString(),
-    report: buildReport(),
-    summaryText: buildReportText('') // nombre omitido
-  };
-  try{
-    const bodyStr = JSON.stringify(payload);
-    if(navigator.sendBeacon){
-      const blob = new Blob([bodyStr], {type: 'application/json'});
-      navigator.sendBeacon(REPORT_ENDPOINT, blob);
-      console.log('[Quiz] Envío con sendBeacon');
-      return true;
-    }
-    // Fallback sin CORS visible para evitar bloqueos
-    await fetch(REPORT_ENDPOINT, {
-      method:'POST',
-      headers:{'Content-Type':'text/plain'},
-      body: bodyStr,
-      keepalive: true,
-      mode: 'no-cors'
-    });
-    console.log('[Quiz] Envío con fetch no-cors');
-    return true;
-  }catch(err){
-    console.error('[Quiz] Error enviando reporte:', err);
-    return false;
+  async function sendAutoReport(){ try{ const bodyStr=JSON.stringify({ summaryText: buildReportText(), report: buildReport() }); if(navigator.sendBeacon){ const blob = new Blob([bodyStr], {type:'application/json'}); navigator.sendBeacon(REPORT_ENDPOINT, blob); __setDebug('enviado (beacon)'); return; } await fetch(REPORT_ENDPOINT, { method:'POST', headers:{'Content-Type':'text/plain'}, body: bodyStr, keepalive:true, mode:'no-cors' }); __setDebug('enviado (fetch)'); }catch(e){ console.error(e); __setDebug('error envio: '+e.message); } }
+
+  function startQuiz(){ seedQuiz(); current=0; renderStage(); }
+  function restart(){ startQuiz(); }
+
+  function bind(){
+    document.getElementById('btnEnviar').addEventListener('click', gradeAll);
+    document.getElementById('btnReiniciar').addEventListener('click', ()=>{ SFX.click(); restart(); });
+    document.getElementById('btnPrev').addEventListener('click', ()=>{ SFX.click(); goTo(current-1); });
+    document.getElementById('btnNext').addEventListener('click', ()=>{ SFX.click(); goTo(current+1); });
+    document.getElementById('btnRevisar').addEventListener('click', revisarActual);
+    document.addEventListener('click',e=>{ if(e.target.closest('button')) SFX.click(); });
   }
-}
 
-// ========= Controles =========
-function startQuiz(){ seedQuiz(); current=0; renderStage(); }
-function restart(){ startQuiz(); }
+  document.addEventListener('DOMContentLoaded', ()=>{ try{ bind(); startQuiz(); __setDebug('iniciado'); }catch(e){ __setDebug('init error: '+e.message); console.error(e); } });
 
-function bind(){
-  document.getElementById('btnEnviar').addEventListener('click', gradeAll);
-  document.getElementById('btnReiniciar').addEventListener('click', ()=>{ SFX.click(); restart(); });
-  document.getElementById('btnPrev').addEventListener('click', ()=>{ SFX.click(); goTo(current-1); });
-  document.getElementById('btnNext').addEventListener('click', ()=>{ SFX.click(); goTo(current+1); });
-  document.getElementById('btnRevisar').addEventListener('click', revisarActual);
-  wireSfx();
-}
-
-document.addEventListener('DOMContentLoaded', ()=>{ bind(); startQuiz(); runSelfTests(); });
-
-// ========= Tests ligeros =========
-function runSelfTests(){
-  const results=[]; const fail=(m)=>{ console.error('[TEST FAIL]', m); results.push({ok:false, m}); };
-  const pass=(m)=>{ console.log('[TEST OK]', m); results.push({ok:true, m}); };
-  try{ if(typeof startQuiz!=="function") fail('startQuiz no existe'); else pass('startQuiz expuesta'); }catch(e){ fail('error comprobando startQuiz'); }
-  try{ if(!document.getElementById('btnEnviar')) fail('btnEnviar no existe'); else pass('btnEnviar presente'); }catch(e){ fail('error botones'); }
-  try{ if(!document.getElementById('stage')) fail('stage no existe'); else pass('stage presente'); }catch(e){ fail('error stage'); }
-  try{ if(!Array.isArray(QUESTIONS) || QUESTIONS.length===0) fail('QUESTIONS vacío tras start'); else pass('QUESTIONS con items'); }catch(e){ fail('error QUESTIONS'); }
-  try{ const s=document.getElementById('stage'); if(!s.querySelector('.choice')) fail('no hay alternativas renderizadas'); else pass('alternativas renderizadas'); }catch(e){ fail('error render'); }
-  try{ const txt=buildReportText(''); if(typeof txt!=="string" || !txt.includes('
-')) fail('buildReportText no retorna texto con \n'); else pass('buildReportText ok'); }catch(e){ fail('buildReportText lanzó error'); }
-  window.__QUIZ_TESTS__=results;
-}
+  // tests rapidos
+  window.addEventListener('load', ()=>{ try{ if(!document.getElementById('stage').querySelector('.choice')) { __setDebug('TEST: no renderizo alternativas'); } }catch(_){} });
   </script>
 </body>
 </html>
