@@ -103,7 +103,7 @@
     box.textContent='debug listo';
     document.addEventListener('error',e=>{box.textContent='JS error: '+e.message;},true);
     window.addEventListener('error',e=>{box.textContent='JS error: '+(e.message||e.error);});
-    document.addEventListener('DOMContentLoaded',()=>{document.body.appendChild(box);});
+    document.addEventListener('DOMContentLoaded', ()=>{ try{ bind(); startQuiz(); runSelfTests(); __setDebug('iniciado'); }catch(e){ __setDebug('init error: '+e.message); console.error(e); } });});
     window.__setDebug=(msg)=>{ box.textContent=msg; };
   })();
 
@@ -201,8 +201,7 @@
   function updateScoreChip(){ const s=score(); const total=QUESTIONS.length; const pct= total? Math.round(100*s/total) : 0; document.getElementById('scoreChip').textContent='Puntaje: '+s+'/'+total+' ('+pct+'%)'; }
 
   function buildReport(){ const total=QUESTIONS.length; const correct=score(); const incorrect=total-correct; const pct= total? Math.round(100*correct/total) : 0; const perQ=QUESTIONS.map((q,i)=>({ n:i+1, context:q.context, skill:q.skill, stem:q.stem, answer:q.userChoice!==null? q.choices[q.userChoice].text:null, correct:q.choices.find(c=>c.correct).text, isCorrect:q.isCorrect })); return { total, correct, incorrect, pct, perQ }; }
-  function buildReportText(){ const dt=new Date().toLocaleString('es-CL'); const r=buildReport(); const lines=[ 'Resultados Quiz - Funciones Lineales y Afines', 'Estudiante: (omitido)', 'Fecha: '+dt, 'Puntaje: '+r.correct+'/'+r.total+' ('+r.pct+'%)', 'Correctas: '+r.correct+' | Incorrectas: '+r.incorrect, '', 'Detalle por pregunta:' ]; r.perQ.forEach(x=>{ lines.push(x.n+'. ['+x.context+'/'+x.skill+']'); lines.push('   Enunciado: '+x.stem); lines.push('   Respuesta: '+(x.answer||'-')); lines.push('   Correcta: '+x.correct); lines.push('   Resultado: '+(x.isCorrect?'CORRECTA':'INCORRECTA')); }); return lines.join('
-'); }
+  function buildReportText(){ const dt=new Date().toLocaleString('es-CL'); const r=buildReport(); const lines=[ 'Resultados Quiz - Funciones Lineales y Afines', 'Estudiante: (omitido)', 'Fecha: '+dt, 'Puntaje: '+r.correct+'/'+r.total+' ('+r.pct+'%)', 'Correctas: '+r.correct+' | Incorrectas: '+r.incorrect, '', 'Detalle por pregunta:' ]; r.perQ.forEach(x=>{ lines.push(x.n+'. ['+x.context+'/'+x.skill+']'); lines.push('   Enunciado: '+x.stem); lines.push('   Respuesta: '+(x.answer||'-')); lines.push('   Correcta: '+x.correct); lines.push('   Resultado: '+(x.isCorrect?'CORRECTA':'INCORRECTA')); }); return lines.join('\\n');}
 
   async function sendAutoReport(){ try{ const bodyStr=JSON.stringify({ summaryText: buildReportText(), report: buildReport() }); if(navigator.sendBeacon){ const blob = new Blob([bodyStr], {type:'application/json'}); navigator.sendBeacon(REPORT_ENDPOINT, blob); __setDebug('enviado (beacon)'); return; } await fetch(REPORT_ENDPOINT, { method:'POST', headers:{'Content-Type':'text/plain'}, body: bodyStr, keepalive:true, mode:'no-cors' }); __setDebug('enviado (fetch)'); }catch(e){ console.error(e); __setDebug('error envio: '+e.message); } }
 
