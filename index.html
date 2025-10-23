@@ -141,10 +141,43 @@ function showSummary(){ const ok=QUESTIONS.filter(q=>q.isCorrect).length; const 
 function buildReportText(){ const ok=QUESTIONS.filter(q=>q.isCorrect).length; const tot=QUESTIONS.length; let txt=`Resultados Quiz - Funciones Lineales y Afines\nPuntaje: ${ok}/${tot}\n`; QUESTIONS.forEach((q,i)=>{ txt+=`Q${i+1}: ${q.stem}\nResp: ${q.userChoice!==null?q.choices[q.userChoice]:'(sin respuesta)'}\nCorrecta: ${q.choices[q.correct]}\nResultado: ${q.isCorrect?'CORRECTA':'INCORRECTA'}\n\n`; }); return txt; }
 async function sendAutoReport(){
   const summary=buildReportText();
-  // 1) Intento: sendBeacon con Blob (Apps Script leerá e.postData.contents)
+  const qp = `?subject=${encodeURIComponent('Resultados Quiz')}&summaryText=${encodeURIComponent(summary.slice(0,1800))}`;
+  console.log('[ENVIO] len=', summary.length);
+
+  // 1) Beacon con querystring (+ cuerpo) → e.parameter.summaryText y/o e.postData.contents
   try{
     if(navigator.sendBeacon){
       const blob=new Blob([summary],{type:'text/plain;charset=UTF-8'});
+      const ok=navigator.sendBeacon(REPORT_ENDPOINT + qp, blob);
+      if(ok){ showToast('Resultados enviados (beacon+qp)'); return; }
+    }
+  }catch(e){ console.warn('beacon fail', e); }
+
+  // 2) POST x-www-form-urlencoded (Apps Script → e.parameter.summaryText)
+  try{
+    const body=new URLSearchParams();
+    body.set('summaryText', summary);
+    body.set('subject','Resultados Quiz');
+    await fetch(REPORT_ENDPOINT + '?via=form',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body: body.toString(),
+      mode:'no-cors',
+      keepalive:true
+    });
+    showToast('Resultados enviados (form)');
+    return;
+  }catch(e){ console.warn('form fail', e); }
+
+  // 3) GET puro con querystring (Apps Script → doGet, e.parameter.summaryText)
+  try{
+    await fetch(REPORT_ENDPOINT + qp + '&via=get', {method:'GET', mode:'no-cors', keepalive:true});
+    showToast('Resultados enviados (GET)');
+    return;
+  }catch(e){ console.error('GET fail', e); }
+
+  showToast('No se pudo enviar', true);
+});
       const ok=navigator.sendBeacon(REPORT_ENDPOINT, blob);
       if(ok){ showToast('Resultados enviados (beacon)'); return; }
     }
