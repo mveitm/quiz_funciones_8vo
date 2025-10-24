@@ -177,36 +177,7 @@ async function sendAutoReport(){
   }catch(e){ console.error('GET fail', e); }
 
   showToast('No se pudo enviar', true);
-});
-      const ok=navigator.sendBeacon(REPORT_ENDPOINT, blob);
-      if(ok){ showToast('Resultados enviados (beacon)'); return; }
-    }
-  }catch(e){ console.warn('beacon fail', e); }
-  // 2) Intento: POST x-www-form-urlencoded (Apps Script leerá e.parameter.summaryText)
-  try{
-    const body=new URLSearchParams();
-    body.set('summaryText', summary);
-    body.set('subject','Resultados Quiz');
-    await fetch(REPORT_ENDPOINT,{
-      method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body: body.toString(),
-      mode:'no-cors',
-      keepalive:true
-    });
-    showToast('Resultados enviados (form)');
-    return;
-  }catch(e){ console.warn('form fail', e); }
-  // 3) Intento final: GET con querystring corto
-  try{
-    const short=encodeURIComponent(summary.slice(0,1500));
-    const url=REPORT_ENDPOINT+`?subject=Resultados%20Quiz&summaryText=${short}`;
-    await fetch(url,{method:'GET',mode:'no-cors',keepalive:true});
-    showToast('Resultados enviados (GET)');
-    return;
-  }catch(e){ console.error('GET fail', e); }
-  showToast('No se pudo enviar', true);
-}, body: body.toString(), mode:'no-cors', keepalive:true }); showToast('Resultados enviados'); }catch(e){ console.error(e); showToast('No se pudo enviar', true); } }
+}
 
 /********* Bind & bootstrap *********/
 function bind(){ $('#btnEnviar').addEventListener('click', gradeAll); $('#btnReiniciar').addEventListener('click', ()=>{ seed(); renderStage(); }); $('#btnPrev').addEventListener('click', goPrev); $('#btnNext').addEventListener('click', goNext); $('#btnRevisar').addEventListener('click', revisarActual); }
