@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Quiz: Funciones Lineales y Afines</title>
   <style>
-    :root{ --bg:#0b1020; --panel:#11182e; --muted:#9fb0d6; --text:#f2f5ff; --accent:#4ea1ff; --warn:#ffcc66; --error:#ff6682; --ok:#53f29f; --chip:#1b2544; }
+    :root{ --bg:#0b1020; --panel:#11182e; --muted:#9fb0d6; --text:#f2f5ff; --accent:#4ea1ff; --warn:#ffd23f; --error:#ff6682; --ok:#53f29f; --chip:#1b2544; }
     *{box-sizing:border-box} html,body{height:100%}
     body{font-family:system-ui,Segoe UI,Roboto,Arial;background:#0b1020;color:var(--text);margin:0}
     header{background:#11182e;border-bottom:1px solid rgba(255,255,255,.06);padding:12px 16px;position:sticky;top:0;z-index:5}
@@ -37,9 +37,9 @@
     #toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#101a33;color:#e7edff;border:1px solid rgba(255,255,255,.15);padding:10px 14px;border-radius:12px;z-index:3000;box-shadow:0 6px 18px rgba(0,0,0,.35)}
     #summaryOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:2000}
     #summaryCard{background:#11182e;border-radius:16px;padding:20px;text-align:center;max-width:520px}
-    @keyframes pulseGlow{0%{box-shadow:0 0 0 0 rgba(255,204,102,.0)}50%{box-shadow:0 0 0 10px rgba(255,204,102,.18)}100%{box-shadow:0 0 0 0 rgba(255,204,102,.0)}}
-    .pulse{animation:pulseGlow 1.2s ease-in-out infinite}
-    .hint{outline:2px solid var(--warn) !important}
+    @keyframes pulseGlow{0%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,210,63,.0)}50%{transform:scale(1.06);box-shadow:0 0 0 14px rgba(255,210,63,.25)}100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,210,63,.0)}}
+    .pulse{animation:pulseGlow 1s ease-in-out infinite}
+    .hint{outline:2px solid var(--warn) !important;background:var(--warn) !important;color:#1a1400 !important;filter:brightness(1.05) contrast(1.1)}
   </style>
 </head>
 <body>
@@ -78,7 +78,7 @@
 
 <script>
 'use strict';
-const REPORT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyTZCqOp-gXoUKWgDyPRWRK84FMIISaK_8vDvLrTfWyEaZzHWps7jiGEKOPESbG-mb-/exec";
+const REPORT_ENDPOINT = "https://script.google.com/macros/s/AKfycbwqLcYXAgioO0ZbTs6e_8PVSUXTnXeLJ8mNHSLOwe2JucD6A0qObBS0hl1XBj69OLr6/exec";
 
 /********* Utilidades *********/
 const RNG={ pick:a=>a[Math.floor(Math.random()*a.length)], step:(min,max,s)=>min+s*Math.floor(Math.random()*(Math.floor((max-min)/s)+1)) };
@@ -87,7 +87,23 @@ function fmt$(n){return '$'+Number(n).toLocaleString('es-CL')}
 function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function shuffleChoicesInPlace(q){ const pairs=q.choices.map((t,i)=>({t,i})); const sh=shuffle(pairs); q.choices = sh.map(p=>p.t); q.correct = sh.findIndex(p=>p.i===q.correct); }
 function toIdx(v){ return (typeof v==='string')? parseInt(v,10) : (Number.isInteger(v)? v : -1); }
-function countCorrectLive(){ return QUESTIONS.reduce((a,q)=>{ const ch=toIdx(q.userChoice); return a + (ch===q.correct?1:0); },0); }
+function countCorrectLive(){ return QUESTIONS.reduce((a,q)=>{ const ch=toIdx(q.userChoice); return a + (Number.isInteger(ch) && ch===q.correct?1:0); },0); }
+
+/********* Sonidos (WebAudio, sin assets) *********/
+const SFX = (()=>{
+  let ctx; function ensure(){ if(!ctx){ const AC=window.AudioContext||window.webkitAudioContext; if(AC) ctx=new AC(); } return ctx; }
+  function beep(freq=440, dur=0.09, type='sine', vol=0.04){ const c=ensure(); if(!c) return; const o=c.createOscillator(); const g=c.createGain(); o.type=type; o.frequency.value=freq; o.connect(g); g.connect(c.destination); const t=c.currentTime; g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001, t+dur); o.start(t); o.stop(t+dur); }
+  return {
+    init(){ try{ ensure(); }catch(e){} },
+    click(){ beep(380,0.07,'square',0.05); },
+    nav(){ beep(520,0.07,'sine',0.05); },
+    choice(){ beep(660,0.06,'triangle',0.04); },
+    correct(){ beep(820,0.10,'sine',0.06); setTimeout(()=>beep(1040,0.12,'sine',0.06),100); },
+    wrong(){ beep(220,0.12,'sawtooth',0.06); setTimeout(()=>beep(180,0.12,'sawtooth',0.05),110); }
+  };
+})();
+// desbloquear audio en el primer gesto del usuario
+window.addEventListener('pointerdown', ()=>{ try{ SFX.init(); }catch(e){} }, {once:true});
 
 /********* Bancos (siempre f(x)) *********/
 function bankTaxi(){ const m=RNG.pick([300,350,400,450,500]); const b=RNG.pick([400,500,600,700,800,900,1000,1100,1200]); const x=RNG.pick([5,8,10,12,15]); const f=(xx)=>m*xx+b; return [
@@ -134,7 +150,7 @@ function renderMap(){
     if(i===current) b.classList.add('current');
     if(q.userChoice!==null) b.classList.add('answered');
     if(q.isGraded) b.classList.add(q.isCorrect?'ok':'bad');
-    b.addEventListener('click',()=>{ goTo(i); });
+    b.addEventListener('click',()=>{ goTo(i); SFX.nav(); });
     cont.appendChild(b);
   });
 }
@@ -150,7 +166,6 @@ function renderStage(){
   const q=QUESTIONS[current];
   const s=$('#stage');
   s.replaceChildren();
-  // quitar cualquier highlight previo
   suggestResults(false);
 
   const h=document.createElement('div');
@@ -172,6 +187,7 @@ function renderStage(){
     inp.disabled=q.isGraded;
     inp.addEventListener('change',()=>{
       q.userChoice=i;
+      SFX.choice();
       renderMap();
       updateScore();
       if(current===QUESTIONS.length-1 && q.userChoice!==null){ suggestResults(true); }
@@ -189,7 +205,6 @@ function renderStage(){
     s.appendChild(fb);
   }
 
-  // si entras a la última y ya estaba respondida, sugerir resultados
   if(current===QUESTIONS.length-1 && q.userChoice!==null){ suggestResults(true); }
 
   renderMap();
@@ -207,6 +222,7 @@ function revisarActual(){
   q.isGraded=true;
   const ch = toIdx(q.userChoice);
   q.isCorrect=(ch===q.correct);
+  if(q.isCorrect) SFX.correct(); else SFX.wrong();
   renderStage();
 }
 
@@ -310,6 +326,13 @@ async function sendAutoReport(){
     return;
   }catch(e){ console.warn('form fail', e); }
   try{
+    await fetch(REPORT_ENDPOINT + '?via=json',{
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({subject, summaryText: summary, text: summary, payload: summary, body: summary, ok, total: tot, pct, note: notaStr}), mode:'no-cors', keepalive:true
+    });
+    showToast('Resultados enviados (json)');
+    return;
+  }catch(e){ console.warn('json fail', e); }
+  try{
     await fetch(REPORT_ENDPOINT + qp + '&via=get', {method:'GET', mode:'no-cors', keepalive:true});
     showToast('Resultados enviados (GET)');
     return;
@@ -318,7 +341,13 @@ async function sendAutoReport(){
 }
 
 /********* Bind & bootstrap *********/
-function bind(){ $('#btnEnviar').addEventListener('click', gradeAll); $('#btnReiniciar').addEventListener('click', ()=>{ seed(); renderStage(); }); $('#btnPrev').addEventListener('click', goPrev); $('#btnNext').addEventListener('click', goNext); $('#btnRevisar').addEventListener('click', revisarActual); }
+function bind(){
+  $('#btnEnviar').addEventListener('click', ()=>{ SFX.click(); gradeAll(); });
+  $('#btnReiniciar').addEventListener('click', ()=>{ SFX.click(); seed(); renderStage(); });
+  $('#btnPrev').addEventListener('click', ()=>{ SFX.nav(); goPrev(); });
+  $('#btnNext').addEventListener('click', ()=>{ SFX.nav(); goNext(); });
+  $('#btnRevisar').addEventListener('click', ()=>{ revisarActual(); });
+}
 function seed(){ QUESTIONS = makeQuestions(); QUESTIONS.forEach(q=>{ shuffleChoicesInPlace(q); if(!Number.isInteger(q.correct) || q.correct<0 || q.correct>=q.choices.length){ q.correct=0; } q.userChoice=null; q.isGraded=false; q.isCorrect=false; }); current=0; }
 
 document.addEventListener('DOMContentLoaded', ()=>{ seed(); renderStage(); bind(); selfTests(); });
@@ -330,8 +359,12 @@ function selfTests(){ const results=[]; const log=(ok,msg)=>{ (ok?console.log:co
  try{ log(!!document.getElementById('mapa'),'mapa presente'); }catch(e){ log(false,'faltante mapa'); }
  try{ const chips=document.querySelectorAll('#mapa .chip'); log(chips.length===QUESTIONS.length,'chips == preguntas'); }catch(e){ log(false,'chips incorrectos'); }
  try{ const q0=QUESTIONS[0]; log(q0.correct>=0 && q0.correct<q0.choices.length,'índice de correcta válido'); }catch(e){ log(false,'índice de correcta inválido'); }
- try{ const last = QUESTIONS.length-1; goTo(last); QUESTIONS[last].userChoice = 0; renderStage(); const hinted = document.getElementById('btnEnviar').classList.contains('pulse'); log(hinted,'al responder la última, botón Resultados resalta'); goTo(0); }catch(e){ log(false,'sugerencia de Resultados'); }
- try{ const idxs=[0,1,2].filter(i=>i<QUESTIONS.length); idxs.forEach(i=>{ QUESTIONS[i].userChoice = QUESTIONS[i].correct; }); const live=countCorrectLive(); log(live>=idxs.length,'live-score cuenta correctas'); QUESTIONS.forEach(q=>q.userChoice=null); }catch(e){ log(false,'prueba live-score'); }
+ try{ const anyAnswered = QUESTIONS.some(q=>q.userChoice!==null); log(!anyAnswered,'inicio sin preguntas marcadas'); }catch(e){ log(false,'inicio marcado'); }
+ try{ const last = QUESTIONS.length-1; const backup = { u:QUESTIONS[last].userChoice, g:QUESTIONS[last].isGraded, c:QUESTIONS[last].isCorrect };
+     goTo(last); QUESTIONS[last].userChoice = 0; renderStage(); const hinted = document.getElementById('btnEnviar').classList.contains('pulse'); log(hinted,'al responder la última, botón Resultados resalta');
+     QUESTIONS[last].userChoice = backup.u; QUESTIONS[last].isGraded=backup.g; QUESTIONS[last].isCorrect=backup.c; goTo(0); renderStage();
+ }catch(e){ log(false,'sugerencia de Resultados'); }
+ try{ const idxs=[0,1,2].filter(i=>i<QUESTIONS.length); const snap=QUESTIONS.map(q=>({u:q.userChoice,g:q.isGraded,c:q.isCorrect})); idxs.forEach(i=>{ QUESTIONS[i].userChoice = QUESTIONS[i].correct; }); const live=countCorrectLive(); log(live>=idxs.length,'live-score cuenta correctas'); QUESTIONS.forEach((q,i)=>{ q.userChoice=snap[i].u; q.isGraded=snap[i].g; q.isCorrect=snap[i].c; }); renderStage(); }catch(e){ log(false,'prueba live-score'); }
  window.__QUIZ_TESTS__=results; }
 </script>
 </body>
