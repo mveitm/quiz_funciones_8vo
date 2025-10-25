@@ -7,7 +7,7 @@
     <!-- Carga de Tailwind CSS para un diseño limpio y responsivo -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Carga de Tone.js para efectos de sonido (minimalista) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         /* Definición de variables CSS para el tema oscuro */
         :root{ 
@@ -15,7 +15,17 @@
             --accent:#4ea1ff; --warn:#ffd23f; --error:#ff6682; --ok:#53f29f; 
             --chip:#1b2544; --chip-hover:#25335d;
         }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+        
+        /* 1. Ajuste para móvil: Usar flex-column para asegurar que los controles de navegación no se salgan de pantalla */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
         .chip { transition: all 0.2s; border-radius: 9999px; }
         .chip:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .pulse { animation: pulse 2s infinite; }
@@ -278,7 +288,7 @@
                     question.choices = shuffleArray(Array.from(incorrects7).slice(0, 4));
                     break;
                 
-                // TIPO 8: PUNTO CERO (Raíz) o EVALUACIÓN
+                // TIPO 8: PUNTO CERO (Raíz) o EVALUACIÓN - CORREGIDA Y VARIADA
                 case 8:
                     let m8, n8, x8, result;
                     do {
@@ -709,17 +719,18 @@
 
     </script>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="flex flex-col">
     <!-- Encabezado Fijo con Diseño Elevado -->
     <header class="bg-panel shadow-2xl sticky top-0 z-10">
         <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+            <!-- Título Limitado a "Funciones" -->
             <h1 class="text-2xl font-extrabold text-accent flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-warn">
                     <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
                     <path d="M2 17l10 5 10-5"></path>
                     <path d="M2 12l10 5 10-5"></path>
                 </svg>
-                Quiz sobre Funciones para 8vo Básico
+                Funciones
             </h1>
             <!-- Badge de Puntaje Dinámico -->
             <div id="scoreBadge" class="text-sm font-semibold text-warn bg-chip px-3 py-1 rounded-full shadow-md">
@@ -728,7 +739,7 @@
         </div>
     </header>
 
-    <!-- Contenido Principal -->
+    <!-- Contenido Principal (flex-grow para ocupar el espacio restante) -->
     <main class="flex-grow p-4 md:p-8">
         <div class="max-w-4xl mx-auto bg-panel p-6 md:p-10 rounded-2xl shadow-2xl border-t-4 border-accent/50">
             
@@ -737,7 +748,7 @@
                 <p class="text-center text-muted">Cargando...</p>
             </div>
             
-            <!-- Barra de Navegación del Quiz -->
+            <!-- Controles de Navegación y Envío -->
             <div class="mt-8 pt-6 border-t border-white/10">
                 
                 <!-- Mapa de Navegación (Chips) -->
