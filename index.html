@@ -343,51 +343,6 @@ async function sendAutoReport(){
   }catch(e){ console.error('GET fail', e); }
   showToast('No se pudo enviar', true);
   setSending(false);
-}{
-  const summary=buildReportText();
-  const ok=countCorrectLive();
-  const tot=QUESTIONS.length; const pct = tot? Math.round(100*ok/tot) : 0; const notaStr = fmtNota(calcNota(pct));
-  const short = summary.slice(0,1800);
-  const subject = `Resultados Quiz – Nota ${notaStr} (${ok}/${tot})`;
-  const qpParams = new URLSearchParams({subject, summaryText: short, text: short, payload: short, body: short, ok:String(ok), total:String(tot), pct:String(pct), note:notaStr});
-  const qp = `?${qpParams.toString()}`;
-  try{
-    if(navigator.sendBeacon){
-      const blob=new Blob([summary],{type:'text/plain;charset=UTF-8'});
-      const sent=navigator.sendBeacon(REPORT_ENDPOINT + qp, blob);
-      if(sent){ showToast('Resultados enviados (beacon)'); return; }
-    }
-  }catch(e){ console.warn('beacon fail', e); }
-  try{
-    const body=new URLSearchParams();
-    body.set('summaryText', summary);
-    body.set('text', summary);
-    body.set('payload', summary);
-    body.set('body', summary);
-    body.set('subject', subject);
-    body.set('ok', String(ok));
-    body.set('total', String(tot));
-    body.set('pct', String(pct));
-    body.set('note', notaStr);
-    await fetch(REPORT_ENDPOINT + '?via=form',{
-      method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString(), mode:'no-cors', keepalive:true
-    });
-    showToast('Resultados enviados (form)');
-    return;
-  }catch(e){ console.warn('form fail', e); }
-  try{
-    await fetch(REPORT_ENDPOINT + '?via=json',{
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({subject, summaryText: summary, text: summary, payload: summary, body: summary, ok, total: tot, pct, note: notaStr}), mode:'no-cors', keepalive:true
-    });
-    showToast('Resultados enviados (json)');
-    return;
-  }catch(e){ console.warn('json fail', e); }
-  try{
-    await fetch(REPORT_ENDPOINT + qp + '&via=get', {method:'GET', mode:'no-cors', keepalive:true});
-    showToast('Resultados enviados (GET)');
-    return;
-  }catch(e){ console.error('GET fail', e); }
-  showToast('No se pudo enviar', true);
 }
 
 /********* Bind & bootstrap *********/
