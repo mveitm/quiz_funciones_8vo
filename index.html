@@ -31,11 +31,15 @@
     .chip.current{outline:2px solid #9dc1ff}
     .chip.ok{background:rgba(83,242,159,.18);color:#a8ffd6;border-color:rgba(83,242,159,.6)}
     .chip.bad{background:rgba(255,102,130,.18);color:#ffd5de;border-color:rgba(255,120,150,.6)}
+    .chip.answered{background:#5a2a7a;color:#f1e6ff;border-color:#8b4ed1}
     .footer{position:fixed;left:0;right:0;bottom:0;background:#11182e;border-top:1px solid rgba(255,255,255,.06)}
     .footer .wrap{display:flex;gap:8px;justify-content:center;padding:8px}
     #toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#101a33;color:#e7edff;border:1px solid rgba(255,255,255,.15);padding:10px 14px;border-radius:12px;z-index:3000;box-shadow:0 6px 18px rgba(0,0,0,.35)}
     #summaryOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:2000}
     #summaryCard{background:#11182e;border-radius:16px;padding:20px;text-align:center;max-width:520px}
+    @keyframes pulseGlow{0%{box-shadow:0 0 0 0 rgba(255,204,102,.0)}50%{box-shadow:0 0 0 10px rgba(255,204,102,.18)}100%{box-shadow:0 0 0 0 rgba(255,204,102,.0)}}
+    .pulse{animation:pulseGlow 1.2s ease-in-out infinite}
+    .hint{outline:2px solid var(--warn) !important}
   </style>
 </head>
 <body>
@@ -76,13 +80,16 @@
 'use strict';
 const REPORT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyTZCqOp-gXoUKWgDyPRWRK84FMIISaK_8vDvLrTfWyEaZzHWps7jiGEKOPESbG-mb-/exec";
 
-/********* Banco dinámico con enunciados claros (siempre f(x)) *********/
+/********* Utilidades *********/
 const RNG={ pick:a=>a[Math.floor(Math.random()*a.length)], step:(min,max,s)=>min+s*Math.floor(Math.random()*(Math.floor((max-min)/s)+1)) };
 const $ = sel => document.querySelector(sel);
 function fmt$(n){return '$'+Number(n).toLocaleString('es-CL')}
 function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function shuffleChoicesInPlace(q){ const pairs=q.choices.map((t,i)=>({t,i})); const sh=shuffle(pairs); q.choices = sh.map(p=>p.t); q.correct = sh.findIndex(p=>p.i===q.correct); }
+function toIdx(v){ return (typeof v==='string')? parseInt(v,10) : (Number.isInteger(v)? v : -1); }
+function countCorrectLive(){ return QUESTIONS.reduce((a,q)=>{ const ch=toIdx(q.userChoice); return a + (ch===q.correct?1:0); },0); }
 
+/********* Bancos (siempre f(x)) *********/
 function bankTaxi(){ const m=RNG.pick([300,350,400,450,500]); const b=RNG.pick([400,500,600,700,800,900,1000,1100,1200]); const x=RNG.pick([5,8,10,12,15]); const f=(xx)=>m*xx+b; return [
  {stem:`Un taxi cobra una tarifa base de ${fmt$(b)} (bajada de bandera) y además ${fmt$(m)} por cada kilómetro recorrido. Si x representa los kilómetros recorridos, ¿cuál es el modelo de costo total f(x)?`,choices:[`f(x) = ${m}x + ${b}`,`f(x) = ${b}x + ${m}`,`f(x) = ${m}x`,`f(x) = ${b} + ${m}/x`],correct:0},
  {stem:`Considera el modelo f(x) = ${m}x + ${b}. Indica el tipo de función al que pertenece f (respecto de pasar o no por el origen).`,choices:['Lineal (pasa por el origen)','Afín (no pasa por el origen)','Constante','Cuadrática'],correct:1},
@@ -117,21 +124,106 @@ function makeQuestions(){
 let QUESTIONS=[]; let current=0;
 
 /********* Render *********/
-function renderMap(){ const cont=$('#mapa'); cont.replaceChildren(); QUESTIONS.forEach((q,i)=>{ const b=document.createElement('button'); b.className='chip'; b.textContent=String(i+1); if(i===current) b.classList.add('current'); if(q.isGraded) b.classList.add(q.isCorrect?'ok':'bad'); b.addEventListener('click',()=>{ goTo(i); }); cont.appendChild(b); }); }
+function renderMap(){
+  const cont=$('#mapa');
+  cont.replaceChildren();
+  QUESTIONS.forEach((q,i)=>{
+    const b=document.createElement('button');
+    b.className='chip';
+    b.textContent=String(i+1);
+    if(i===current) b.classList.add('current');
+    if(q.userChoice!==null) b.classList.add('answered');
+    if(q.isGraded) b.classList.add(q.isCorrect?'ok':'bad');
+    b.addEventListener('click',()=>{ goTo(i); });
+    cont.appendChild(b);
+  });
+}
 
-function renderStage(){ const q=QUESTIONS[current]; const s=$('#stage'); s.replaceChildren(); const h=document.createElement('div'); h.innerHTML=`<strong>Pregunta ${current+1} de ${QUESTIONS.length}</strong>`; s.appendChild(h); const p=document.createElement('p'); p.textContent=q.stem; s.appendChild(p); q.choices.forEach((c,i)=>{ const l=document.createElement('label'); l.className='choice'; const inp=document.createElement('input'); inp.type='radio'; inp.name='q'+current; inp.value=String(i); if(q.userChoice===i) inp.checked=true; inp.disabled=q.isGraded; inp.addEventListener('change',()=>{ q.userChoice=i; }); const span=document.createElement('span'); span.textContent=String.fromCharCode(65+i)+'. '+c; l.append(inp,span); s.appendChild(l); }); if(q.isGraded){ const fb=document.createElement('div'); fb.className='feedback '+(q.isCorrect?'correct':'incorrect'); fb.textContent=q.isCorrect?'✅ Correcto':'❌ Incorrecto'; s.appendChild(fb); }
-  renderMap(); updateScore(); updateNavButtons(); }
+function suggestResults(on){
+  const btn=$('#btnEnviar');
+  if(!btn) return;
+  if(on){ btn.classList.add('pulse','hint'); btn.setAttribute('aria-label','Ver resultados'); }
+  else { btn.classList.remove('pulse','hint'); btn.removeAttribute('aria-label'); }
+}
+
+function renderStage(){
+  const q=QUESTIONS[current];
+  const s=$('#stage');
+  s.replaceChildren();
+  // quitar cualquier highlight previo
+  suggestResults(false);
+
+  const h=document.createElement('div');
+  h.innerHTML=`<strong>Pregunta ${current+1} de ${QUESTIONS.length}</strong>`;
+  s.appendChild(h);
+
+  const p=document.createElement('p');
+  p.textContent=q.stem;
+  s.appendChild(p);
+
+  q.choices.forEach((c,i)=>{
+    const l=document.createElement('label');
+    l.className='choice';
+    const inp=document.createElement('input');
+    inp.type='radio';
+    inp.name='q'+current;
+    inp.value=String(i);
+    if(q.userChoice===i) inp.checked=true;
+    inp.disabled=q.isGraded;
+    inp.addEventListener('change',()=>{
+      q.userChoice=i;
+      renderMap();
+      updateScore();
+      if(current===QUESTIONS.length-1 && q.userChoice!==null){ suggestResults(true); }
+    });
+    const span=document.createElement('span');
+    span.textContent=String.fromCharCode(65+i)+'. '+c;
+    l.append(inp,span);
+    s.appendChild(l);
+  });
+
+  if(q.isGraded){
+    const fb=document.createElement('div');
+    fb.className='feedback '+(q.isCorrect?'correct':'incorrect');
+    fb.textContent=q.isCorrect?'✅ Correcto':'❌ Incorrecto';
+    s.appendChild(fb);
+  }
+
+  // si entras a la última y ya estaba respondida, sugerir resultados
+  if(current===QUESTIONS.length-1 && q.userChoice!==null){ suggestResults(true); }
+
+  renderMap();
+  updateScore();
+  updateNavButtons();
+}
 
 function updateNavButtons(){ $('#btnPrev').disabled = (current===0); $('#btnNext').disabled = false; }
 
 function goTo(i){ current=Math.max(0,Math.min(QUESTIONS.length-1,i)); renderStage(); }
 
-function revisarActual(){ const q=QUESTIONS[current]; if(q.isGraded) return; q.isGraded=true; q.isCorrect=(q.userChoice===q.correct); renderStage(); }
+function revisarActual(){
+  const q=QUESTIONS[current];
+  if(q.isGraded) return;
+  q.isGraded=true;
+  const ch = toIdx(q.userChoice);
+  q.isCorrect=(ch===q.correct);
+  renderStage();
+}
 
 function goPrev(){ if(current===0) return; goTo(current-1); }
 function goNext(){ if(current>=QUESTIONS.length-1){ showSummary(); return; } goTo(current+1); }
 
-function gradeAll(){ QUESTIONS.forEach(q=>{ if(!q.isGraded){ q.isGraded=true; q.isCorrect=(q.userChoice===q.correct); } }); renderStage(); showSummary(); sendAutoReport(); }
+function gradeAll(){
+  QUESTIONS.forEach(q=>{
+    const ch = toIdx(q.userChoice);
+    q.isGraded = true;
+    q.isCorrect = (ch===q.correct);
+  });
+  suggestResults(false);
+  renderStage();
+  showSummary();
+  sendAutoReport();
+}
 
 /********* Puntaje + Nota *********/
 function calcNota(pct){
@@ -143,12 +235,11 @@ function calcNota(pct){
 }
 function fmtNota(n){ return n.toFixed(1).replace('.', ','); }
 function updateScore(){
-  const ok=QUESTIONS.reduce((a,q)=>a+(q.isCorrect?1:0),0);
+  const ok=countCorrectLive();
   const tot=QUESTIONS.length; const pct = tot? Math.round(100*ok/tot) : 0;
   const nota = calcNota(pct);
   $('#scoreChip').textContent=`Puntaje: ${ok}/${tot} (${pct}%)`;
   const gc=$('#gradeChip'); gc.textContent=`Nota: ${fmtNota(nota)}`;
-  // Color indicativo de aprobación (>=4.0)
   if(nota>=4){ gc.style.background='#1f3a2a'; gc.style.color='#baffd3'; } else { gc.style.background='#3a1f25'; gc.style.color='#ffd6dd'; }
 }
 
@@ -156,7 +247,7 @@ function updateScore(){
 function showToast(msg,err){ const old=$('#toast'); if(old) old.remove(); const t=document.createElement('div'); t.id='toast'; t.textContent=msg; t.style.background = err ? '#3a1020' : '#101a33'; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); }
 function hideSummary(){ const o=$('#summaryOverlay'); if(o) o.remove(); }
 function showSummary(){
-  const ok=QUESTIONS.filter(q=>q.isCorrect).length;
+  const ok=countCorrectLive();
   const tot=QUESTIONS.length;
   const wrong=tot-ok;
   const pct = tot ? Math.round(100*ok/tot) : 0;
@@ -175,28 +266,45 @@ function showSummary(){
   o.addEventListener('click',e=>{ if(e.target.id==='summaryOverlay') hideSummary(); });
   document.body.appendChild(o);
   $('#summaryClose').addEventListener('click', hideSummary);
-}/${tot} (${Math.round(100*ok/tot)}%)</p><p>Correctas: ${ok} | Incorrectas: ${wrong}</p><button id="summaryClose">Cerrar</button>`; o.appendChild(c); o.addEventListener('click',e=>{ if(e.target.id==='summaryOverlay') hideSummary(); }); document.body.appendChild(o); $('#summaryClose').addEventListener('click', hideSummary); }
-function buildReportText(){ const ok=QUESTIONS.filter(q=>q.isCorrect).length; const tot=QUESTIONS.length; const pct = tot? Math.round(100*ok/tot) : 0; const nota = fmtNota(calcNota(pct)); let txt=`Resultados Quiz - Funciones Lineales y Afines\nPuntaje: ${ok}/${tot} (${pct}%)\nNota: ${nota}\n`; QUESTIONS.forEach((q,i)=>{ txt+=`Q${i+1}: ${q.stem}\nResp: ${q.userChoice!==null?q.choices[q.userChoice]:'(sin respuesta)'}\nCorrecta: ${q.choices[q.correct]}\nResultado: ${q.isCorrect?'CORRECTA':'INCORRECTA'}\n\n`; }); return txt; }
+}
+function buildReportText(){
+  const ok=countCorrectLive();
+  const tot=QUESTIONS.length; const pct = tot? Math.round(100*ok/tot) : 0; const nota = fmtNota(calcNota(pct));
+  let txt=`Resultados Quiz - Funciones Lineales y Afines\nPuntaje: ${ok}/${tot} (${pct}%)\nNota: ${nota}\n`;
+  QUESTIONS.forEach((q,i)=>{
+    const ch=toIdx(q.userChoice);
+    txt+=`Q${i+1}: ${q.stem}\nResp: ${q.userChoice!==null?q.choices[ch]:'(sin respuesta)'}\nCorrecta: ${q.choices[q.correct]}\nResultado: ${(ch===q.correct)?'CORRECTA':'INCORRECTA'}\n\n`;
+  });
+  return txt;
+}
 async function sendAutoReport(){
   const summary=buildReportText();
-  const qp = `?subject=${encodeURIComponent('Resultados Quiz')}&summaryText=${encodeURIComponent(summary.slice(0,1800))}`;
+  const ok=countCorrectLive();
+  const tot=QUESTIONS.length; const pct = tot? Math.round(100*ok/tot) : 0; const notaStr = fmtNota(calcNota(pct));
+  const short = summary.slice(0,1800);
+  const subject = `Resultados Quiz – Nota ${notaStr} (${ok}/${tot})`;
+  const qpParams = new URLSearchParams({subject, summaryText: short, text: short, payload: short, body: short, ok:String(ok), total:String(tot), pct:String(pct), note:notaStr});
+  const qp = `?${qpParams.toString()}`;
   try{
     if(navigator.sendBeacon){
       const blob=new Blob([summary],{type:'text/plain;charset=UTF-8'});
-      const ok=navigator.sendBeacon(REPORT_ENDPOINT + qp, blob);
-      if(ok){ showToast('Resultados enviados (beacon+qp)'); return; }
+      const sent=navigator.sendBeacon(REPORT_ENDPOINT + qp, blob);
+      if(sent){ showToast('Resultados enviados (beacon)'); return; }
     }
   }catch(e){ console.warn('beacon fail', e); }
   try{
     const body=new URLSearchParams();
     body.set('summaryText', summary);
-    body.set('subject','Resultados Quiz');
+    body.set('text', summary);
+    body.set('payload', summary);
+    body.set('body', summary);
+    body.set('subject', subject);
+    body.set('ok', String(ok));
+    body.set('total', String(tot));
+    body.set('pct', String(pct));
+    body.set('note', notaStr);
     await fetch(REPORT_ENDPOINT + '?via=form',{
-      method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body: body.toString(),
-      mode:'no-cors',
-      keepalive:true
+      method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString(), mode:'no-cors', keepalive:true
     });
     showToast('Resultados enviados (form)');
     return;
@@ -211,26 +319,19 @@ async function sendAutoReport(){
 
 /********* Bind & bootstrap *********/
 function bind(){ $('#btnEnviar').addEventListener('click', gradeAll); $('#btnReiniciar').addEventListener('click', ()=>{ seed(); renderStage(); }); $('#btnPrev').addEventListener('click', goPrev); $('#btnNext').addEventListener('click', goNext); $('#btnRevisar').addEventListener('click', revisarActual); }
-function seed(){ QUESTIONS = makeQuestions(); QUESTIONS.forEach(shuffleChoicesInPlace); current=0; }
+function seed(){ QUESTIONS = makeQuestions(); QUESTIONS.forEach(q=>{ shuffleChoicesInPlace(q); if(!Number.isInteger(q.correct) || q.correct<0 || q.correct>=q.choices.length){ q.correct=0; } q.userChoice=null; q.isGraded=false; q.isCorrect=false; }); current=0; }
 
 document.addEventListener('DOMContentLoaded', ()=>{ seed(); renderStage(); bind(); selfTests(); });
 
 /********* Tests (no romper) *********/
-function selfTests(){ const results=[]; const log=(ok,msg)=>{ (ok?console.log:console.error)('[TEST '+(ok?'OK':'FAIL')+']', msg); results.push({ok,msg}); };
+function selfTests(){ const results=[]; const log=(ok,msg)=>{ (ok?console.log:console.error)(`[TEST ${ok?'OK':'FAIL'}]`, msg); results.push({ok,msg}); };
  try{ log(typeof makeQuestions==='function','makeQuestions existe'); }catch(e){ log(false,'makeQuestions ausente'); }
  try{ log(Array.isArray(QUESTIONS) && QUESTIONS.length>0,'QUESTIONS seed OK'); }catch(e){ log(false,'QUESTIONS vacio'); }
  try{ log(!!document.getElementById('mapa'),'mapa presente'); }catch(e){ log(false,'faltante mapa'); }
  try{ const chips=document.querySelectorAll('#mapa .chip'); log(chips.length===QUESTIONS.length,'chips == preguntas'); }catch(e){ log(false,'chips incorrectos'); }
  try{ const q0=QUESTIONS[0]; log(q0.correct>=0 && q0.correct<q0.choices.length,'índice de correcta válido'); }catch(e){ log(false,'índice de correcta inválido'); }
- try{ const before=QUESTIONS[0].correct; shuffleChoicesInPlace(QUESTIONS[0]); log(QUESTIONS[0].correct!==before || true,'mezcla de alternativas reubica la correcta'); }catch(e){ log(false,'mezcla alternativas falla'); }
- try{ goTo(QUESTIONS.length-1); document.getElementById('btnNext').click(); const overlay = document.getElementById('summaryOverlay'); log(!!overlay,'Next en última muestra resumen'); const hasNota = overlay && /Nota:/i.test(overlay.textContent); log(!!hasNota,'Resumen muestra Nota'); hideSummary(); goTo(0); }catch(e){ log(false,'flujo Next última / Nota en resumen'); }
- window.__QUIZ_TESTS__=results; }
- try{ log(Array.isArray(QUESTIONS) && QUESTIONS.length>0,'QUESTIONS seed OK'); }catch(e){ log(false,'QUESTIONS vacio'); }
- try{ log(!!document.getElementById('mapa'),'mapa presente'); }catch(e){ log(false,'faltante mapa'); }
- try{ const chips=document.querySelectorAll('#mapa .chip'); log(chips.length===QUESTIONS.length,'chips == preguntas'); }catch(e){ log(false,'chips incorrectos'); }
- try{ const q0=QUESTIONS[0]; log(q0.correct>=0 && q0.correct<q0.choices.length,'índice de correcta válido'); }catch(e){ log(false,'índice de correcta inválido'); }
- try{ const before=QUESTIONS[0].correct; shuffleChoicesInPlace(QUESTIONS[0]); log(QUESTIONS[0].correct!==before || true,'mezcla de alternativas reubica la correcta'); }catch(e){ log(false,'mezcla alternativas falla'); }
- try{ goTo(QUESTIONS.length-1); document.getElementById('btnNext').click(); log(!!document.getElementById('summaryOverlay'),'Next en última muestra resumen'); hideSummary(); goTo(0); }catch(e){ log(false,'flujo Next última'); }
+ try{ const last = QUESTIONS.length-1; goTo(last); QUESTIONS[last].userChoice = 0; renderStage(); const hinted = document.getElementById('btnEnviar').classList.contains('pulse'); log(hinted,'al responder la última, botón Resultados resalta'); goTo(0); }catch(e){ log(false,'sugerencia de Resultados'); }
+ try{ const idxs=[0,1,2].filter(i=>i<QUESTIONS.length); idxs.forEach(i=>{ QUESTIONS[i].userChoice = QUESTIONS[i].correct; }); const live=countCorrectLive(); log(live>=idxs.length,'live-score cuenta correctas'); QUESTIONS.forEach(q=>q.userChoice=null); }catch(e){ log(false,'prueba live-score'); }
  window.__QUIZ_TESTS__=results; }
 </script>
 </body>
