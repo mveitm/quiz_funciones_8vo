@@ -40,6 +40,9 @@
     @keyframes pulseGlow{0%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,210,63,.0)}50%{transform:scale(1.06);box-shadow:0 0 0 14px rgba(255,210,63,.25)}100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,210,63,.0)}}
     .pulse{animation:pulseGlow 1s ease-in-out infinite}
     .hint{outline:2px solid var(--warn) !important;background:var(--warn) !important;color:#1a1400 !important;filter:brightness(1.05) contrast(1.1)}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    button.loading{position:relative}
+    button.loading::after{content:"";position:absolute;right:-22px;top:50%;width:14px;height:14px;margin-top:-7px;border:2px solid rgba(255,255,255,.7);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
   </style>
 </head>
 <body>
@@ -78,7 +81,7 @@
 
 <script>
 'use strict';
-const REPORT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyMaD-Ihr0BMGJ7KYfZcCko0Pmn_EmeZBl__DgqXgJCKD6-Yh_yZQA8_7_irnYsk0WB/exec";
+const REPORT_ENDPOINT = "https://script.google.com/macros/s/AKfycbxCFeTrEQavEULgdjNCVGHclhSlimFxiOwUbXn15tsAofjfj02chOpZM5M4Nsn_G5Vr/exec";
 
 /********* Utilidades *********/
 const RNG={ pick:a=>a[Math.floor(Math.random()*a.length)], step:(min,max,s)=>min+s*Math.floor(Math.random()*(Math.floor((max-min)/s)+1)) };
@@ -293,7 +296,54 @@ function buildReportText(){
   });
   return txt;
 }
+function setSending(on){ const btn=$('#btnEnviar'); if(!btn) return; if(on){ btn.disabled=true; if(!btn.dataset.prevText){ btn.dataset.prevText=btn.textContent; } btn.textContent='Enviando…'; btn.classList.add('loading'); } else { btn.disabled=false; if(btn.dataset.prevText){ btn.textContent=btn.dataset.prevText; } btn.classList.remove('loading'); } }
+
 async function sendAutoReport(){
+  setSending(true);
+  showToast('Enviando…');
+  const summary=buildReportText();
+  const ok=countCorrectLive();
+  const tot=QUESTIONS.length; const pct = tot? Math.round(100*ok/tot) : 0; const notaStr = fmtNota(calcNota(pct));
+  const short = summary.slice(0,1800);
+  const subject = `Resultados Quiz – Nota ${notaStr} (${ok}/${tot})`;
+  const qpParams = new URLSearchParams({subject, summaryText: short, text: short, payload: short, body: short, ok:String(ok), total:String(tot), pct:String(pct), note:notaStr});
+  const qp = `?${qpParams.toString()}`;
+  try{
+    if(navigator.sendBeacon){
+      const blob=new Blob([summary],{type:'text/plain;charset=UTF-8'});
+      const sent=navigator.sendBeacon(REPORT_ENDPOINT + qp, blob);
+      if(sent){ showToast('Enviado ✅'); setSending(false); return; }
+    }
+  }catch(e){ console.warn('beacon fail', e); }
+  try{
+    const body=new URLSearchParams();
+    body.set('summaryText', summary);
+    body.set('text', summary);
+    body.set('payload', summary);
+    body.set('body', summary);
+    body.set('subject', subject);
+    body.set('ok', String(ok));
+    body.set('total', String(tot));
+    body.set('pct', String(pct));
+    body.set('note', notaStr);
+    await fetch(REPORT_ENDPOINT + '?via=form',{
+      method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString(), mode:'no-cors', keepalive:true
+    });
+    showToast('Enviado ✅'); setSending(false); return;
+  }catch(e){ console.warn('form fail', e); }
+  try{
+    await fetch(REPORT_ENDPOINT + '?via=json',{
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({subject, summaryText: summary, text: summary, payload: summary, body: summary, ok, total: tot, pct, note: notaStr}), mode:'no-cors', keepalive:true
+    });
+    showToast('Enviado ✅'); setSending(false); return;
+  }catch(e){ console.warn('json fail', e); }
+  try{
+    await fetch(REPORT_ENDPOINT + qp + '&via=get', {method:'GET', mode:'no-cors', keepalive:true});
+    showToast('Enviado ✅'); setSending(false); return;
+  }catch(e){ console.error('GET fail', e); }
+  showToast('No se pudo enviar', true);
+  setSending(false);
+}{
   const summary=buildReportText();
   const ok=countCorrectLive();
   const tot=QUESTIONS.length; const pct = tot? Math.round(100*ok/tot) : 0; const notaStr = fmtNota(calcNota(pct));
