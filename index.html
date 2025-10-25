@@ -49,6 +49,7 @@
       <button id="btnEnviar" class="warn">Resultados</button>
       <button id="btnReiniciar">Reiniciar</button>
       <span id="scoreChip" class="badge">Puntaje: 0/0</span>
+      <span id="gradeChip" class="badge">Nota: —</span>
     </div>
   </div>
 </header>
@@ -75,7 +76,7 @@
 'use strict';
 const REPORT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyTZCqOp-gXoUKWgDyPRWRK84FMIISaK_8vDvLrTfWyEaZzHWps7jiGEKOPESbG-mb-/exec";
 
-/********* Banco dinámico con enunciados claros *********/
+/********* Banco dinámico con enunciados claros (siempre f(x)) *********/
 const RNG={ pick:a=>a[Math.floor(Math.random()*a.length)], step:(min,max,s)=>min+s*Math.floor(Math.random()*(Math.floor((max-min)/s)+1)) };
 const $ = sel => document.querySelector(sel);
 function fmt$(n){return '$'+Number(n).toLocaleString('es-CL')}
@@ -90,15 +91,15 @@ function bankTaxi(){ const m=RNG.pick([300,350,400,450,500]); const b=RNG.pick([
 ]; }
 
 function bankRend(){ const r=RNG.pick([12,13,14,15,16,18]); const L=RNG.pick([10,20,30,40]); return [
- {stem:`Un automóvil rinde ${r} km por cada litro de combustible. Sea k(L) el número de kilómetros que puede recorrer con L litros. ¿Cuál es el modelo correcto para k(L)?`,choices:[`k(L) = ${r}L`,`k(L) = L/${r}`,`k(L) = ${r}/L`,`k(L) = L`],correct:0},
- {stem:`Según el modelo k(L) = ${r}L, indica el tipo de función (considerando si pasa o no por el origen).`,choices:['Lineal (proporcional, pasa por el origen)','Afín (no pasa por el origen)','Constante','Cuadrática'],correct:0},
- {stem:`Usa el modelo k(L) = ${r}L para determinar cuántos kilómetros se recorren con ${L} litros.`,choices:[`${r*L} km`,`${L*r/2} km`,`${r+L} km`,`${L} km`],correct:0}
+ {stem:`Un automóvil rinde ${r} km por cada litro de combustible. Sea f(x) el número de kilómetros que puede recorrer con x litros. ¿Cuál es el modelo correcto para f(x)?`,choices:[`f(x) = ${r}x`,`f(x) = x/${r}`,`f(x) = ${r}/x`,`f(x) = x`],correct:0},
+ {stem:`Según el modelo f(x) = ${r}x, indica el tipo de función (considerando si pasa o no por el origen).`,choices:['Lineal (proporcional, pasa por el origen)','Afín (no pasa por el origen)','Constante','Cuadrática'],correct:0},
+ {stem:`Usa el modelo f(x) = ${r}x para determinar cuántos kilómetros se recorren con ${L} litros (toma x = ${L}).`,choices:[`${r*L} km`,`${L*r/2} km`,`${r+L} km`,`${L} km`],correct:0}
 ]; }
 
 function bankCosto(){ const c=RNG.step(1000,5000,500); const F=RNG.step(30000,80000,5000); const x=RNG.pick([20,50,100,200]); const C=(xx)=>c*xx+F; return [
- {stem:`Una fábrica tiene un costo fijo de ${fmt$(F)} y un costo variable de ${fmt$(c)} por cada unidad producida. Si x es el número de unidades, ¿cuál es el modelo de costo total C(x) en pesos?`,choices:[`C(x) = ${c}x + ${F}`,`C(x) = ${c}x`,`C(x) = ${F}x + ${c}`,`C(x) = ${F} - ${c}x`],correct:0},
- {stem:`Respecto del modelo C(x) = ${c}x + ${F}, ¿de qué tipo de función se trata?`,choices:['Afín (no pasa por el origen)','Lineal (pasa por el origen)','Constante','Exponencial'],correct:0},
- {stem:`Usando C(x) = ${c}x + ${F}, calcula el costo total de producir ${x} unidades.`,choices:[fmt$(C(x)),fmt$(c*x),fmt$(C(x)*3),fmt$(F)],correct:0}
+ {stem:`Una fábrica tiene un costo fijo de ${fmt$(F)} y un costo variable de ${fmt$(c)} por cada unidad producida. Si x es el número de unidades, ¿cuál es el modelo de costo total f(x) en pesos?`,choices:[`f(x) = ${c}x + ${F}`,`f(x) = ${c}x`,`f(x) = ${F}x + ${c}`,`f(x) = ${F} - ${c}x`],correct:0},
+ {stem:`Respecto del modelo f(x) = ${c}x + ${F}, ¿de qué tipo de función se trata?`,choices:['Afín (no pasa por el origen)','Lineal (pasa por el origen)','Constante','Exponencial'],correct:0},
+ {stem:`Usando f(x) = ${c}x + ${F}, calcula el costo total de producir ${x} unidades.`,choices:[fmt$(C(x)),fmt$(c*x),fmt$(C(x)*3),fmt$(F)],correct:0}
 ]; }
 
 function bankVend(){ const p=RNG.step(300,900,50); const B=RNG.step(50000,120000,10000); const x=RNG.pick([100,200,400]); const f=(xx)=>p*xx+B; return [
@@ -132,19 +133,53 @@ function goNext(){ if(current>=QUESTIONS.length-1){ showSummary(); return; } goT
 
 function gradeAll(){ QUESTIONS.forEach(q=>{ if(!q.isGraded){ q.isGraded=true; q.isCorrect=(q.userChoice===q.correct); } }); renderStage(); showSummary(); sendAutoReport(); }
 
-function updateScore(){ const ok=QUESTIONS.reduce((a,q)=>a+(q.isCorrect?1:0),0); const tot=QUESTIONS.length; $('#scoreChip').textContent=`Puntaje: ${ok}/${tot}`; }
+/********* Puntaje + Nota *********/
+function calcNota(pct){
+  // Escala 2.0–7.0 con exigencia 60% (60% => 4.0). Lineal por tramos.
+  let g;
+  if(pct<=60){ g = 2 + (pct/60)*2; } else { g = 4 + ((pct-60)/40)*3; }
+  g = Math.max(2, Math.min(7, g));
+  return g;
+}
+function fmtNota(n){ return n.toFixed(1).replace('.', ','); }
+function updateScore(){
+  const ok=QUESTIONS.reduce((a,q)=>a+(q.isCorrect?1:0),0);
+  const tot=QUESTIONS.length; const pct = tot? Math.round(100*ok/tot) : 0;
+  const nota = calcNota(pct);
+  $('#scoreChip').textContent=`Puntaje: ${ok}/${tot} (${pct}%)`;
+  const gc=$('#gradeChip'); gc.textContent=`Nota: ${fmtNota(nota)}`;
+  // Color indicativo de aprobación (>=4.0)
+  if(nota>=4){ gc.style.background='#1f3a2a'; gc.style.color='#baffd3'; } else { gc.style.background='#3a1f25'; gc.style.color='#ffd6dd'; }
+}
 
 /********* Resumen + Envío *********/
 function showToast(msg,err){ const old=$('#toast'); if(old) old.remove(); const t=document.createElement('div'); t.id='toast'; t.textContent=msg; t.style.background = err ? '#3a1020' : '#101a33'; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); }
 function hideSummary(){ const o=$('#summaryOverlay'); if(o) o.remove(); }
-function showSummary(){ const ok=QUESTIONS.filter(q=>q.isCorrect).length; const tot=QUESTIONS.length; const wrong=tot-ok; hideSummary(); const o=document.createElement('div'); o.id='summaryOverlay'; const c=document.createElement('div'); c.id='summaryCard'; c.innerHTML=`<h2>Resultados</h2><p>Puntaje: ${ok}/${tot} (${Math.round(100*ok/tot)}%)</p><p>Correctas: ${ok} | Incorrectas: ${wrong}</p><button id="summaryClose">Cerrar</button>`; o.appendChild(c); o.addEventListener('click',e=>{ if(e.target.id==='summaryOverlay') hideSummary(); }); document.body.appendChild(o); $('#summaryClose').addEventListener('click', hideSummary); }
-function buildReportText(){ const ok=QUESTIONS.filter(q=>q.isCorrect).length; const tot=QUESTIONS.length; let txt=`Resultados Quiz - Funciones Lineales y Afines\nPuntaje: ${ok}/${tot}\n`; QUESTIONS.forEach((q,i)=>{ txt+=`Q${i+1}: ${q.stem}\nResp: ${q.userChoice!==null?q.choices[q.userChoice]:'(sin respuesta)'}\nCorrecta: ${q.choices[q.correct]}\nResultado: ${q.isCorrect?'CORRECTA':'INCORRECTA'}\n\n`; }); return txt; }
+function showSummary(){
+  const ok=QUESTIONS.filter(q=>q.isCorrect).length;
+  const tot=QUESTIONS.length;
+  const wrong=tot-ok;
+  const pct = tot ? Math.round(100*ok/tot) : 0;
+  const gNum = calcNota(pct);
+  const gStr = fmtNota(gNum);
+  const estado = gNum >= 4 ? 'APROBADO' : 'REPROBADO';
+  hideSummary();
+  const o=document.createElement('div'); o.id='summaryOverlay';
+  const c=document.createElement('div'); c.id='summaryCard';
+  c.innerHTML=`<h2>Resultados</h2>
+    <p>Puntaje: ${ok}/${tot} (${pct}%)</p>
+    <p>Nota: ${gStr} — ${estado}</p>
+    <p>Correctas: ${ok} | Incorrectas: ${wrong}</p>
+    <button id="summaryClose">Cerrar</button>`;
+  o.appendChild(c);
+  o.addEventListener('click',e=>{ if(e.target.id==='summaryOverlay') hideSummary(); });
+  document.body.appendChild(o);
+  $('#summaryClose').addEventListener('click', hideSummary);
+}/${tot} (${Math.round(100*ok/tot)}%)</p><p>Correctas: ${ok} | Incorrectas: ${wrong}</p><button id="summaryClose">Cerrar</button>`; o.appendChild(c); o.addEventListener('click',e=>{ if(e.target.id==='summaryOverlay') hideSummary(); }); document.body.appendChild(o); $('#summaryClose').addEventListener('click', hideSummary); }
+function buildReportText(){ const ok=QUESTIONS.filter(q=>q.isCorrect).length; const tot=QUESTIONS.length; const pct = tot? Math.round(100*ok/tot) : 0; const nota = fmtNota(calcNota(pct)); let txt=`Resultados Quiz - Funciones Lineales y Afines\nPuntaje: ${ok}/${tot} (${pct}%)\nNota: ${nota}\n`; QUESTIONS.forEach((q,i)=>{ txt+=`Q${i+1}: ${q.stem}\nResp: ${q.userChoice!==null?q.choices[q.userChoice]:'(sin respuesta)'}\nCorrecta: ${q.choices[q.correct]}\nResultado: ${q.isCorrect?'CORRECTA':'INCORRECTA'}\n\n`; }); return txt; }
 async function sendAutoReport(){
   const summary=buildReportText();
   const qp = `?subject=${encodeURIComponent('Resultados Quiz')}&summaryText=${encodeURIComponent(summary.slice(0,1800))}`;
-  console.log('[ENVIO] len=', summary.length);
-
-  // 1) Beacon con querystring (+ cuerpo) → e.parameter.summaryText y/o e.postData.contents
   try{
     if(navigator.sendBeacon){
       const blob=new Blob([summary],{type:'text/plain;charset=UTF-8'});
@@ -152,8 +187,6 @@ async function sendAutoReport(){
       if(ok){ showToast('Resultados enviados (beacon+qp)'); return; }
     }
   }catch(e){ console.warn('beacon fail', e); }
-
-  // 2) POST x-www-form-urlencoded (Apps Script → e.parameter.summaryText)
   try{
     const body=new URLSearchParams();
     body.set('summaryText', summary);
@@ -168,14 +201,11 @@ async function sendAutoReport(){
     showToast('Resultados enviados (form)');
     return;
   }catch(e){ console.warn('form fail', e); }
-
-  // 3) GET puro con querystring (Apps Script → doGet, e.parameter.summaryText)
   try{
     await fetch(REPORT_ENDPOINT + qp + '&via=get', {method:'GET', mode:'no-cors', keepalive:true});
     showToast('Resultados enviados (GET)');
     return;
   }catch(e){ console.error('GET fail', e); }
-
   showToast('No se pudo enviar', true);
 }
 
@@ -191,7 +221,14 @@ function selfTests(){ const results=[]; const log=(ok,msg)=>{ (ok?console.log:co
  try{ log(Array.isArray(QUESTIONS) && QUESTIONS.length>0,'QUESTIONS seed OK'); }catch(e){ log(false,'QUESTIONS vacio'); }
  try{ log(!!document.getElementById('mapa'),'mapa presente'); }catch(e){ log(false,'faltante mapa'); }
  try{ const chips=document.querySelectorAll('#mapa .chip'); log(chips.length===QUESTIONS.length,'chips == preguntas'); }catch(e){ log(false,'chips incorrectos'); }
- try{ const q0=QUESTIONS[0]; const pos=q0.choices.indexOf(q0.choices[q0.correct]); log(q0.correct>=0 && q0.correct<q0.choices.length,'índice de correcta válido'); }catch(e){ log(false,'índice de correcta inválido'); }
+ try{ const q0=QUESTIONS[0]; log(q0.correct>=0 && q0.correct<q0.choices.length,'índice de correcta válido'); }catch(e){ log(false,'índice de correcta inválido'); }
+ try{ const before=QUESTIONS[0].correct; shuffleChoicesInPlace(QUESTIONS[0]); log(QUESTIONS[0].correct!==before || true,'mezcla de alternativas reubica la correcta'); }catch(e){ log(false,'mezcla alternativas falla'); }
+ try{ goTo(QUESTIONS.length-1); document.getElementById('btnNext').click(); const overlay = document.getElementById('summaryOverlay'); log(!!overlay,'Next en última muestra resumen'); const hasNota = overlay && /Nota:/i.test(overlay.textContent); log(!!hasNota,'Resumen muestra Nota'); hideSummary(); goTo(0); }catch(e){ log(false,'flujo Next última / Nota en resumen'); }
+ window.__QUIZ_TESTS__=results; }
+ try{ log(Array.isArray(QUESTIONS) && QUESTIONS.length>0,'QUESTIONS seed OK'); }catch(e){ log(false,'QUESTIONS vacio'); }
+ try{ log(!!document.getElementById('mapa'),'mapa presente'); }catch(e){ log(false,'faltante mapa'); }
+ try{ const chips=document.querySelectorAll('#mapa .chip'); log(chips.length===QUESTIONS.length,'chips == preguntas'); }catch(e){ log(false,'chips incorrectos'); }
+ try{ const q0=QUESTIONS[0]; log(q0.correct>=0 && q0.correct<q0.choices.length,'índice de correcta válido'); }catch(e){ log(false,'índice de correcta inválido'); }
  try{ const before=QUESTIONS[0].correct; shuffleChoicesInPlace(QUESTIONS[0]); log(QUESTIONS[0].correct!==before || true,'mezcla de alternativas reubica la correcta'); }catch(e){ log(false,'mezcla alternativas falla'); }
  try{ goTo(QUESTIONS.length-1); document.getElementById('btnNext').click(); log(!!document.getElementById('summaryOverlay'),'Next en última muestra resumen'); hideSummary(); goTo(0); }catch(e){ log(false,'flujo Next última'); }
  window.__QUIZ_TESTS__=results; }
