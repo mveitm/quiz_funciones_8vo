@@ -1,376 +1,607 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Quiz: Funciones Lineales y Afines</title>
-  <style>
-    :root{ --bg:#0b1020; --panel:#11182e; --muted:#9fb0d6; --text:#f2f5ff; --accent:#4ea1ff; --warn:#ffd23f; --error:#ff6682; --ok:#53f29f; --chip:#1b2544; }
-    *{box-sizing:border-box} html,body{height:100%}
-    body{font-family:system-ui,Segoe UI,Roboto,Arial;background:#0b1020;color:var(--text);margin:0}
-    header{background:#11182e;border-bottom:1px solid rgba(255,255,255,.06);padding:12px 16px;position:sticky;top:0;z-index:5}
-    .wrap{max-width:980px;margin:0 auto}
-    .badge{background:#25335d;padding:6px 12px;border-radius:999px;font-size:.9rem;display:inline-block}
-    .hstack{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .title{display:flex;justify-content:space-between;align-items:center;gap:12px}
-    button{background:var(--accent);color:#041226;border:0;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
-    button.warn{background:var(--warn);color:#221b00}
-    button.secondary{background:#25335d;color:#fff}
-    button:disabled{opacity:.5;cursor:not-allowed}
-    main{max-width:980px;margin:16px auto;padding:0 16px 104px}
-    .grid{display:grid;gap:16px;grid-template-columns:1fr}
-    @media(min-width:900px){ .grid{ grid-template-columns:280px 1fr } }
-    aside{background:#11182e;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px}
-    .qcard{background:#11182e;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:16px}
-    .choice{margin:6px 0;padding:8px;border-radius:8px;background:#1b2544;display:flex;align-items:center;gap:8px}
-    .feedback{margin-top:10px;padding:10px;border-radius:8px}
-    .feedback.correct{background:rgba(83,242,159,.15);color:#bcffe0}
-    .feedback.incorrect{background:rgba(255,102,130,.15);color:#ffd5de}
-    .chips{display:flex;flex-wrap:wrap;gap:8px}
-    .chip{user-select:none;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:var(--chip);color:#cfe0ff;font-weight:700;border:1px solid rgba(255,255,255,.08);cursor:pointer}
-    .chip.current{outline:2px solid #9dc1ff}
-    .chip.ok{background:rgba(83,242,159,.18);color:#a8ffd6;border-color:rgba(83,242,159,.6)}
-    .chip.bad{background:rgba(255,102,130,.18);color:#ffd5de;border-color:rgba(255,120,150,.6)}
-    .chip.answered{background:#5a2a7a;color:#f1e6ff;border-color:#8b4ed1}
-    .footer{position:fixed;left:0;right:0;bottom:0;background:#11182e;border-top:1px solid rgba(255,255,255,.06)}
-    .footer .wrap{display:flex;gap:8px;justify-content:center;padding:8px}
-    #toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#101a33;color:#e7edff;border:1px solid rgba(255,255,255,.15);padding:10px 14px;border-radius:12px;z-index:3000;box-shadow:0 6px 18px rgba(0,0,0,.35)}
-    #summaryOverlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:2000}
-    #summaryCard{background:#11182e;border-radius:16px;padding:20px;text-align:center;max-width:520px}
-    @keyframes pulseGlow{0%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,210,63,.0)}50%{transform:scale(1.06);box-shadow:0 0 0 14px rgba(255,210,63,.25)}100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,210,63,.0)}}
-    .pulse{animation:pulseGlow 1s ease-in-out infinite}
-    .hint{outline:2px solid var(--warn) !important;background:var(--warn) !important;color:#1a1400 !important;filter:brightness(1.05) contrast(1.1)}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    button.loading{position:relative}
-    button.loading::after{content:"";position:absolute;right:-22px;top:50%;width:14px;height:14px;margin-top:-7px;border:2px solid rgba(255,255,255,.7);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
-  </style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quiz: Funciones Lineales y Afines</title>
+    <!-- Carga de Tailwind CSS para un diseño limpio y responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Definición de variables CSS para el tema oscuro */
+        :root{ 
+            --bg:#0b1020; --panel:#11182e; --muted:#9fb0d6; --text:#f2f5ff; 
+            --accent:#4ea1ff; --warn:#ffd23f; --error:#ff6682; --ok:#53f29f; 
+            --chip:#1b2544; --chip-hover:#25335d;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+        .chip { transition: all 0.2s; border-radius: 9999px; }
+        .chip:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--accent); }
+            50% { opacity: 0.8; box-shadow: 0 0 0 10px rgba(78, 161, 255, 0); }
+        }
+        /* Estilos específicos para la alternativa seleccionada */
+        .choice-selected { 
+            background-color: var(--accent) !important; 
+            color: var(--bg) !important;
+            font-weight: 600;
+        }
+        /* Estilos para el Toast (notificaciones) */
+        #toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            padding: 12px 24px; background: var(--panel); color: var(--text);
+            border-radius: 8px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            opacity: 0; transition: opacity 0.5s, transform 0.5s; z-index: 1000;
+        }
+        .show-toast { opacity: 1 !important; transform: translate(-50%, 0) !important; }
+        
+        /* Estilo para la lista de alternativas, mejor en móvil */
+        .choices-grid { display: grid; gap: 1rem; }
+        @media (min-width: 640px) {
+            .choices-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+    <script>
+        // *****************************************************************************
+        // ¡MANDATORIO! REEMPLAZA ESTA URL CON LA URL DE TU SCRIPT DE GOOGLE APP DESPLEGADO
+        const REPORT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyE5oOh3FS1O817IacptIEd7pNQLNalsB-Bp92vghRqfaJIi-v3rZppbEnD4_cNQQiK/exec"; 
+        // *****************************************************************************
+
+        // Objeto de Estado Centralizado (SSM) para la robustez de la aplicación
+        const STATE = {
+            questions: [], // Array de preguntas
+            current: 0,    // Índice de la pregunta actual (siempre inicializado a 0)
+            isGraded: false, // Indica si el modo de revisión de resultados está activo
+        };
+
+        // -----------------------------------------------------------
+        // 1. BANCO DE PREGUNTAS (13 Preguntas)
+        // -----------------------------------------------------------
+        function getQuestionBank() {
+            return [
+                {
+                    text: "Si la función es f(x) = 3x - 5, ¿cuál es el valor de f(2)?",
+                    choices: ["1", "3", "5", "6"],
+                    correct: 0, // Índice 0: "1"
+                    userChoice: null, isCorrect: null, isGraded: false,
+                },
+                {
+                    text: "¿Cuál es la pendiente (m) de la función lineal f(x) = -2x + 7?",
+                    choices: ["7", "2", "-2", "0"],
+                    correct: 2, // Índice 2: "-2"
+                    userChoice: null, isCorrect: null, isGraded: false,
+                },
+                {
+                    text: "¿Qué tipo de función es f(x) = 5x?",
+                    choices: ["Afín", "Constante", "Lineal", "Cuadrática"],
+                    correct: 2, // Índice 2: "Lineal"
+                    userChoice: null, isCorrect: null, isGraded: false,
+                },
+                {
+                    text: "El punto de corte con el eje Y (intercepto) de f(x) = 4x + 1 es:",
+                    choices: ["(4, 0)", "(0, 1)", "(1, 0)", "(0, 4)"],
+                    correct: 1, // Índice 1: "(0, 1)"
+                    userChoice: null, isCorrect: null, isGraded: false,
+                },
+                {
+                    text: "Una función lineal siempre pasa por el punto:",
+                    choices: ["(1, 0)", "(0, 1)", "(0, 0)", "(1, 1)"],
+                    correct: 2, // Índice 2: "(0, 0)"
+                    userChoice: null, isCorrect: null, isGraded: false,
+                },
+                {
+                    text: "Si la pendiente es 1/2, la función es:",
+                    choices: ["Decreciente", "Creciente", "Constante", "Lineal pura"],
+                    correct: 1, // Índice 1: "Creciente" (pendiente positiva)
+                    userChoice: null, isCorrect: null, isGraded: false,
+                },
+                {
+                    text: "¿Cuál es la ecuación de una función afín con pendiente -1 y ordenada al origen 3?",
+                    choices: ["f(x) = x + 3", "f(x) = -x + 3", "f(x) = 3x - 1", "f(x) = -3x + 1"],
+                    correct: 1, // Índice 1: "f(x) = -x + 3"
+                    userChoice: null, isCorrect: null, isGraded: false,
+                },
+                {
+                    text: "Para f(x) = -x + 4, el valor de x cuando f(x) = 0 es:",
+                    choices: ["-4", "4", "0", "1"],
+                    correct: 1, // Índice 1: "4" (0 = -x + 4 => x = 4)
+                    userChoice: null, isCorrect: null, isGraded: false,
+                },
+                {
+                    text: "Si dos rectas tienen la misma pendiente, son:",
+                    choices: ["Perpendiculares", "Secantes", "Paralelas", "Iguales"],
+                    correct: 2, // Índice 2: "Paralelas"
+                    userChoice: null, isCorrect: null, isGraded: false,
+                },
+                {
+                    text: "La función que modela el costo fijo de $10 y un costo variable de $2 por unidad es:",
+                    choices: ["C(x) = 10x + 2", "C(x) = 2x + 10", "C(x) = 12x", "C(x) = 10"],
+                    correct: 1, // Índice 1: "C(x) = 2x + 10"
+                    userChoice: null, isCorrect: null, isGraded: false,
+                },
+                {
+                    text: "¿Qué representa la 'n' en la forma f(x) = mx + n?",
+                    choices: ["La pendiente", "La variable dependiente", "El intercepto con Y", "La variable independiente"],
+                    correct: 2, // Índice 2: "El intercepto con Y"
+                    userChoice: null, isCorrect: null, isGraded: false,
+                },
+                {
+                    text: "Una función se llama 'constante' si su gráfica es una línea:",
+                    choices: ["Vertical", "Diagonal", "Horizontal", "Curva"],
+                    correct: 2, // Índice 2: "Horizontal" (m=0)
+                    userChoice: null, isCorrect: null, isGraded: false,
+                },
+                {
+                    text: "La función identidad f(x) = x, tiene pendiente:",
+                    choices: ["0", "1", "-1", "Indefinida"],
+                    correct: 1, // Índice 1: "1"
+                    userChoice: null, isCorrect: null, isGraded: false,
+                },
+            ];
+        }
+
+        // -----------------------------------------------------------
+        // 2. LÓGICA DE ESTADO Y FLUJO
+        // -----------------------------------------------------------
+
+        /**
+         * Inicializa o restablece el estado de la aplicación.
+         * Previene el error de inicialización al asegurar que QUESTIONS siempre está lleno.
+         */
+        function initializeState() {
+            // Llenar el estado con las preguntas
+            STATE.questions = getQuestionBank();
+            STATE.current = 0;
+            STATE.isGraded = false;
+        }
+
+        /**
+         * Maneja la selección de una alternativa.
+         * @param {number} choiceIndex - Índice de la alternativa seleccionada.
+         */
+        function selectChoice(choiceIndex) {
+            if (STATE.isGraded) return; // No permitir cambios si ya se calificó
+
+            const question = STATE.questions[STATE.current];
+            question.userChoice = choiceIndex;
+
+            // Resaltar el botón Resultados si es la última pregunta y está respondida
+            if (STATE.current === STATE.questions.length - 1) {
+                const isAllAnswered = STATE.questions.every(q => q.userChoice !== null);
+                const btnEnviar = document.getElementById('btnEnviar');
+                if (isAllAnswered) {
+                    btnEnviar.classList.add('pulse', 'bg-warn/90');
+                } else {
+                    btnEnviar.classList.remove('pulse', 'bg-warn/90');
+                }
+            }
+            
+            // Re-renderizar la etapa para reflejar la selección
+            renderStage();
+        }
+
+        /**
+         * Navega a la pregunta anterior o siguiente.
+         * @param {number} offset - 1 para siguiente, -1 para anterior.
+         */
+        function navigate(offset) {
+            const newIndex = STATE.current + offset;
+
+            if (newIndex >= 0 && newIndex < STATE.questions.length) {
+                STATE.current = newIndex;
+                renderStage();
+            }
+        }
+        
+        /**
+         * Cuenta las respuestas correctas.
+         * Aplica la calificación si no se ha hecho antes.
+         * @returns {number} Número de respuestas correctas.
+         */
+        function countAndGrade() {
+            let correctCount = 0;
+            STATE.questions.forEach(q => {
+                // Calificar internamente si no está calificado
+                if (!q.isGraded) {
+                    q.isCorrect = q.userChoice === q.correct;
+                    q.isGraded = true;
+                }
+                if (q.isCorrect) {
+                    correctCount++;
+                }
+            });
+            return correctCount;
+        }
+
+
+        // -----------------------------------------------------------
+        // 3. RENDERIZADO DEL UI (Actualización del DOM)
+        // -----------------------------------------------------------
+
+        /**
+         * Renderiza el contenido de la etapa (pregunta y alternativas).
+         */
+        function renderStage() {
+            // GUARD: Previene errores si el estado no está listo
+            if (STATE.questions.length === 0) {
+                document.getElementById('stage').innerHTML = '<p class="text-center text-muted">Cargando preguntas...</p>';
+                return;
+            }
+
+            const currentQ = STATE.questions[STATE.current];
+            const stageEl = document.getElementById('stage');
+            
+            // 1. Renderizar la pregunta
+            stageEl.innerHTML = `
+                <div class="text-xl font-bold mb-6 text-text">
+                    ${STATE.current + 1}. ${currentQ.text}
+                </div>
+            `;
+            
+            // 2. Crear el contenedor de alternativas
+            const choicesContainer = document.createElement('div');
+            choicesContainer.className = 'choices-grid';
+            
+            // 3. Renderizar alternativas
+            currentQ.choices.forEach((choiceText, index) => {
+                const isSelected = currentQ.userChoice === index;
+                
+                // Clases base para el chip de alternativa
+                let choiceClasses = "chip p-4 border-2 cursor-pointer transition duration-300 shadow-lg text-center font-medium ";
+                let borderColor = 'border-chip';
+                let bgColor = 'bg-chip';
+                let textColor = 'text-text';
+
+                // Modo Calificado (isGraded)
+                if (STATE.isGraded) {
+                    if (index === currentQ.correct) {
+                        // Respuesta Correcta
+                        choiceClasses += " border-ok bg-ok/10 text-ok";
+                        if (isSelected) {
+                            choiceClasses += " choice-selected"; // Resalta si es la correcta y la escogió
+                        }
+                    } else if (isSelected && !currentQ.isCorrect) {
+                        // Respuesta Incorrecta seleccionada por el usuario
+                        choiceClasses += " border-error bg-error/10 text-error";
+                    } else {
+                        // Alternativa no seleccionada y no es la correcta
+                        choiceClasses += " border-chip bg-chip/50 text-muted";
+                    }
+                } 
+                // Modo Normal (isGraded = false)
+                else {
+                    if (isSelected) {
+                        choiceClasses += " choice-selected border-accent bg-accent/90 text-bg shadow-lg";
+                    } else {
+                        choiceClasses += " border-chip bg-chip hover:bg-chip-hover";
+                    }
+                }
+
+                const choiceEl = document.createElement('div');
+                choiceEl.className = choiceClasses;
+                choiceEl.textContent = choiceText;
+                choiceEl.setAttribute('data-index', index);
+                
+                // Adjuntar listener solo si no está calificado
+                if (!STATE.isGraded) {
+                    choiceEl.onclick = () => selectChoice(index);
+                }
+                
+                choicesContainer.appendChild(choiceEl);
+            });
+            
+            stageEl.appendChild(choicesContainer);
+            
+            // 4. Actualizar el mapa de navegación y botones
+            renderMapAndButtons();
+        }
+
+        /**
+         * Renderiza el mapa de navegación inferior y actualiza la visibilidad de botones.
+         */
+        function renderMapAndButtons() {
+            const mapContainer = document.getElementById('mapa');
+            mapContainer.innerHTML = '';
+            
+            // Generar los chips de navegación
+            STATE.questions.forEach((q, index) => {
+                const chip = document.createElement('div');
+                let chipClasses = 'chip text-xs px-3 py-1 cursor-pointer font-bold transition duration-150 ';
+                
+                if (index === STATE.current) {
+                    chipClasses += 'bg-accent text-bg shadow-xl';
+                } else if (q.userChoice !== null) {
+                    chipClasses += 'bg-chip-hover text-text hover:bg-accent/50';
+                } else {
+                    chipClasses += 'bg-chip text-muted hover:bg-chip-hover';
+                }
+                
+                if (STATE.isGraded) {
+                    if (q.isCorrect) chipClasses = chipClasses.replace(/bg-.*/, 'bg-ok/70 text-bg');
+                    else if (q.userChoice !== null) chipClasses = chipClasses.replace(/bg-.*/, 'bg-error/70 text-bg');
+                }
+
+                chip.className = chipClasses;
+                chip.textContent = index + 1;
+                chip.onclick = () => { STATE.current = index; renderStage(); };
+                mapContainer.appendChild(chip);
+            });
+
+            // Actualizar botones de navegación
+            document.getElementById('btnPrev').disabled = STATE.current === 0;
+            document.getElementById('btnNext').disabled = STATE.current === STATE.questions.length - 1;
+            
+            // Actualizar botón de Enviar/Resultados
+            const btnEnviar = document.getElementById('btnEnviar');
+            const isAllAnswered = STATE.questions.every(q => q.userChoice !== null);
+
+            if (STATE.isGraded) {
+                // Modo Calificado: Se muestra el botón de Reiniciar
+                btnEnviar.textContent = 'Reiniciar Quiz';
+                btnEnviar.classList.remove('bg-warn/90', 'pulse');
+                btnEnviar.classList.add('bg-accent');
+                btnEnviar.onclick = restartQuiz;
+            } else {
+                // Modo Normal: Mostrar "Resultados" solo si está todo respondido
+                btnEnviar.textContent = 'Resultados';
+                btnEnviar.classList.remove('bg-accent');
+                btnEnviar.classList.toggle('bg-warn/90', isAllAnswered);
+                btnEnviar.classList.toggle('pulse', isAllAnswered);
+                btnEnviar.classList.toggle('opacity-50', !isAllAnswered);
+                btnEnviar.disabled = !isAllAnswered;
+                btnEnviar.onclick = showResults;
+            }
+        }
+
+        // -----------------------------------------------------------
+        // 4. FUNCIONALIDAD PRINCIPAL
+        // -----------------------------------------------------------
+
+        /**
+         * Muestra los resultados finales, califica el quiz y activa el modo de revisión.
+         */
+        function showResults() {
+            if (STATE.isGraded) return; // Evitar doble calificación
+
+            const isAllAnswered = STATE.questions.every(q => q.userChoice !== null);
+            if (!isAllAnswered) {
+                showToast('¡Debes responder todas las 13 preguntas antes de ver los resultados!', 'warn');
+                return;
+            }
+
+            const correctCount = countAndGrade();
+            const totalQuestions = STATE.questions.length;
+            const percentage = ((correctCount / totalQuestions) * 100).toFixed(1);
+            
+            // Activar el modo de revisión
+            STATE.isGraded = true;
+            STATE.current = 0; // Volver a la primera pregunta para revisión
+
+            // Generar el reporte de texto
+            const reportText = generateReport(correctCount, totalQuestions, percentage);
+            
+            // Mostrar resumen
+            showSummaryModal(reportText.summaryHTML);
+
+            // Intentar enviar el reporte por correo
+            sendReportEmail(reportText.rawText, correctCount, totalQuestions)
+                .then(() => showToast('Resultados enviados por correo ✅', 'ok'))
+                .catch(() => showToast('Error al enviar el reporte. Revisa la URL del Apps Script.', 'error'));
+
+            // Renderizar la UI en modo calificado
+            renderStage();
+        }
+
+        /**
+         * Reinicia el quiz al estado inicial.
+         */
+        function restartQuiz() {
+            if (!confirm('¿Estás seguro de que quieres reiniciar el Quiz? Se perderán los resultados actuales.')) {
+                return;
+            }
+            initializeState();
+            renderStage();
+            hideModal();
+            showToast('Quiz Reiniciado. ¡Mucha suerte!', 'accent');
+        }
+
+
+        // -----------------------------------------------------------
+        // 5. HERRAMIENTAS Y UTILIDADES
+        // -----------------------------------------------------------
+
+        /**
+         * Muestra un mensaje temporal (Toast).
+         * @param {string} message - Mensaje a mostrar.
+         * @param {('ok'|'error'|'warn'|'accent')} type - Tipo de mensaje para color.
+         */
+        let toastTimeout;
+        function showToast(message, type = 'accent') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.backgroundColor = `var(--${type})`;
+            toast.style.color = type === 'accent' ? 'var(--bg)' : 'var(--text)';
+            
+            toast.classList.add('show-toast');
+
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show-toast');
+            }, 3000);
+        }
+
+        /**
+         * Genera el reporte en formato HTML (para el modal) y texto plano (para el email).
+         * @returns {{summaryHTML: string, rawText: string}} Reporte.
+         */
+        function generateReport(correctCount, totalQuestions, percentage) {
+            let summaryHTML = `<h2 class="text-3xl font-extrabold mb-2">Resultados Finales</h2>`;
+            summaryHTML += `<p class="text-xl mb-4">Correctas: <span class="text-ok font-bold">${correctCount}</span> de <span class="font-bold">${totalQuestions}</span></p>`;
+            summaryHTML += `<p class="text-4xl font-black mb-6" style="color:var(--accent)">Nota: ${percentage}%</p>`;
+
+            let rawText = `[REPORTE QUIZ FUNCIONES LINEALES Y AFINES]\n`;
+            rawText += `Nota Final: ${percentage}% (${correctCount}/${totalQuestions})\n\n`;
+
+            STATE.questions.forEach((q, index) => {
+                const status = q.isCorrect ? 'CORRECTA' : 'INCORRECTA';
+                const userChoiceText = q.userChoice !== null ? q.choices[q.userChoice] : 'No Respondida';
+                const correctChoiceText = q.choices[q.correct];
+
+                rawText += `--- Pregunta ${index + 1} (${status}) ---\n`;
+                rawText += `Pregunta: ${q.text}\n`;
+                rawText += `Tu Respuesta: ${userChoiceText}\n`;
+                if (!q.isCorrect) {
+                    rawText += `Respuesta Correcta: ${correctChoiceText}\n`;
+                }
+                rawText += `\n`;
+            });
+            
+            rawText += `\n--- FIN DEL DETALLE ---\n`;
+
+            return { summaryHTML, rawText };
+        }
+        
+        /**
+         * Muestra la ventana modal de resultados.
+         * @param {string} contentHTML - Contenido HTML del modal.
+         */
+        function showSummaryModal(contentHTML) {
+            document.getElementById('modal-content').innerHTML = contentHTML + 
+                '<p class="mt-8 text-center"><button onclick="hideModal()" class="bg-accent text-bg font-bold py-3 px-6 rounded-lg transition hover:bg-accent/80">Revisar Respuestas</button></p>';
+            document.getElementById('modal').classList.remove('hidden');
+        }
+        
+        /**
+         * Oculta la ventana modal.
+         */
+        function hideModal() {
+            document.getElementById('modal').classList.add('hidden');
+        }
+
+        /**
+         * Envía el reporte por correo a través de Google Apps Script.
+         * Usa 'fetch' con FormData para manejar el envío de datos.
+         * @param {string} report - Texto plano del reporte.
+         * @param {number} correctas - Cantidad de respuestas correctas.
+         * @param {number} total - Cantidad total de preguntas.
+         * @returns {Promise<void>}
+         */
+        async function sendReportEmail(report, correctas, total) {
+            try {
+                const formData = new FormData();
+                formData.append('reporte', report);
+                formData.append('correctas', correctas);
+                formData.append('total', total);
+
+                const response = await fetch(REPORT_ENDPOINT, {
+                    method: 'POST',
+                    body: formData, // FormData es compatible con form-urlencoded que espera GAS
+                    // No especificar 'Content-Type' para que el navegador lo defina
+                });
+
+                // GAS con CORS devuelve una respuesta válida que podemos chequear
+                const result = await response.json();
+
+                if (result.status === "success") {
+                    return Promise.resolve();
+                } else {
+                    console.error("Error del Servidor GAS:", result.message);
+                    return Promise.reject(new Error(result.message));
+                }
+
+            } catch (error) {
+                console.error("Error de red o CORS al enviar reporte:", error);
+                // Aquí el error puede ser que la URL está mal o el CORS falló
+                return Promise.reject(error);
+            }
+        }
+
+        // -----------------------------------------------------------
+        // 6. INICIALIZACIÓN DE LA APLICACIÓN
+        // -----------------------------------------------------------
+        
+        /**
+         * Función de arranque principal.
+         */
+        function initApp() {
+            console.log("Iniciando Quiz App...");
+            initializeState();
+            
+            // Asignar listeners a los botones de navegación una sola vez
+            document.getElementById('btnPrev').onclick = () => navigate(-1);
+            document.getElementById('btnNext').onclick = () => navigate(1);
+            
+            // El botón de enviar/resultados se actualiza en renderMapAndButtons()
+            
+            // El core de la aplicación: renderizar la etapa inicial
+            renderStage();
+            console.log("Quiz cargado exitosamente. Total de preguntas:", STATE.questions.length);
+            showToast('Quiz de 13 Preguntas: Funciones Lineales y Afines', 'accent');
+        }
+
+        // Arranque estricto después de que el DOM esté completamente cargado
+        document.addEventListener('DOMContentLoaded', initApp);
+
+    </script>
 </head>
-<body>
-<header>
-  <div class="wrap title">
-    <div>
-      <div class="badge">Con cariño de su profesor Mauricio ❤️</div>
-      <h2 style="margin:.3rem 0 0">Quiz: Funciones Lineales y Afines</h2>
+<body class="min-h-screen flex flex-col">
+    <!-- Encabezado Fijo -->
+    <header class="bg-panel shadow-2xl sticky top-0 z-10">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 class="text-xl font-extrabold text-accent">Quiz Matemáticas</h1>
+            <div class="badge text-sm font-semibold">
+                Funciones Lineales y Afines
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="flex-grow p-4 md:p-8">
+        <div class="max-w-4xl mx-auto bg-panel p-6 md:p-10 rounded-xl shadow-2xl border border-white/10">
+            
+            <!-- Contenedor de la Pregunta y Alternativas -->
+            <div id="stage" class="min-h-[250px] flex flex-col justify-center">
+                <!-- El contenido de la pregunta y alternativas se inyecta aquí -->
+                <p class="text-center text-muted">Cargando...</p>
+            </div>
+            
+            <!-- Barra de Navegación del Quiz -->
+            <div class="mt-8 pt-6 border-t border-white/10">
+                
+                <!-- Mapa de Navegación (Chips) -->
+                <div id="mapa" class="flex flex-wrap justify-center gap-2 mb-6">
+                    <!-- Los chips de navegación se inyectan aquí -->
+                </div>
+
+                <!-- Botones de Control -->
+                <div class="flex justify-between items-center gap-4">
+                    <button id="btnPrev" class="bg-chip text-text p-3 rounded-xl font-bold transition duration-200 hover:bg-chip-hover disabled:opacity-50" disabled>
+                        &#9664; Anterior
+                    </button>
+                    
+                    <button id="btnEnviar" class="bg-warn text-bg p-3 rounded-xl font-extrabold transition duration-200 hover:opacity-80 disabled:opacity-50">
+                        Resultados
+                    </button>
+                    
+                    <button id="btnNext" class="bg-chip text-text p-3 rounded-xl font-bold transition duration-200 hover:bg-chip-hover disabled:opacity-50">
+                        Siguiente &#9654;
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Toast (Notificación) -->
+    <div id="toast" role="alert" class="bg-accent text-bg"></div>
+
+    <!-- Modal de Resultados -->
+    <div id="modal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center hidden p-4" onclick="hideModal()">
+        <div class="bg-panel p-8 md:p-10 rounded-xl shadow-2xl max-w-lg w-full text-center" onclick="event.stopPropagation()">
+            <div id="modal-content">
+                <!-- Contenido del resumen de resultados -->
+            </div>
+        </div>
     </div>
-    <div class="hstack">
-      <button id="btnEnviar" class="warn">Resultados</button>
-      <button id="btnReiniciar">Reiniciar</button>
-      <span id="scoreChip" class="badge">Puntaje: 0/0</span>
-      <span id="gradeChip" class="badge">Nota: —</span>
-    </div>
-  </div>
-</header>
-
-<main>
-  <section class="grid">
-    <aside>
-      <h3 style="margin:.2rem 0 .6rem">Mapa de preguntas</h3>
-      <div id="mapa" class="chips" aria-live="polite"></div>
-    </aside>
-    <section id="stage" class="qcard" aria-live="polite"></section>
-  </section>
-</main>
-
-<div class="footer">
-  <div class="wrap">
-    <button id="btnPrev" class="secondary">Anterior</button>
-    <button id="btnRevisar" class="warn">Revisar</button>
-    <button id="btnNext">Siguiente</button>
-  </div>
-</div>
-
-<script>
-'use strict';
-const REPORT_ENDPOINT = "https://script.google.com/macros/s/AKfycbxCFeTrEQavEULgdjNCVGHclhSlimFxiOwUbXn15tsAofjfj02chOpZM5M4Nsn_G5Vr/exec";
-
-/********* Utilidades *********/
-const RNG={ pick:a=>a[Math.floor(Math.random()*a.length)], step:(min,max,s)=>min+s*Math.floor(Math.random()*(Math.floor((max-min)/s)+1)) };
-const $ = sel => document.querySelector(sel);
-function fmt$(n){return '$'+Number(n).toLocaleString('es-CL')}
-function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
-function shuffleChoicesInPlace(q){ const pairs=q.choices.map((t,i)=>({t,i})); const sh=shuffle(pairs); q.choices = sh.map(p=>p.t); q.correct = sh.findIndex(p=>p.i===q.correct); }
-function toIdx(v){ return (typeof v==='string')? parseInt(v,10) : (Number.isInteger(v)? v : -1); }
-function countCorrectLive(){ return QUESTIONS.reduce((a,q)=>{ const ch=toIdx(q.userChoice); return a + (Number.isInteger(ch) && ch===q.correct?1:0); },0); }
-
-/********* Sonidos (WebAudio, sin assets) *********/
-const SFX = (()=>{
-  let ctx; function ensure(){ if(!ctx){ const AC=window.AudioContext||window.webkitAudioContext; if(AC) ctx=new AC(); } return ctx; }
-  function beep(freq=440, dur=0.09, type='sine', vol=0.04){ const c=ensure(); if(!c) return; const o=c.createOscillator(); const g=c.createGain(); o.type=type; o.frequency.value=freq; o.connect(g); g.connect(c.destination); const t=c.currentTime; g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001, t+dur); o.start(t); o.stop(t+dur); }
-  return {
-    init(){ try{ ensure(); }catch(e){} },
-    click(){ beep(380,0.07,'square',0.05); },
-    nav(){ beep(520,0.07,'sine',0.05); },
-    choice(){ beep(660,0.06,'triangle',0.04); },
-    correct(){ beep(820,0.10,'sine',0.06); setTimeout(()=>beep(1040,0.12,'sine',0.06),100); },
-    wrong(){ beep(220,0.12,'sawtooth',0.06); setTimeout(()=>beep(180,0.12,'sawtooth',0.05),110); }
-  };
-})();
-// desbloquear audio en el primer gesto del usuario
-window.addEventListener('pointerdown', ()=>{ try{ SFX.init(); }catch(e){} }, {once:true});
-
-/********* Bancos (siempre f(x)) *********/
-function bankTaxi(){ const m=RNG.pick([300,350,400,450,500]); const b=RNG.pick([400,500,600,700,800,900,1000,1100,1200]); const x=RNG.pick([5,8,10,12,15]); const f=(xx)=>m*xx+b; return [
- {stem:`Un taxi cobra una tarifa base de ${fmt$(b)} (bajada de bandera) y además ${fmt$(m)} por cada kilómetro recorrido. Si x representa los kilómetros recorridos, ¿cuál es el modelo de costo total f(x)?`,choices:[`f(x) = ${m}x + ${b}`,`f(x) = ${b}x + ${m}`,`f(x) = ${m}x`,`f(x) = ${b} + ${m}/x`],correct:0},
- {stem:`Considera el modelo f(x) = ${m}x + ${b}. Indica el tipo de función al que pertenece f (respecto de pasar o no por el origen).`,choices:['Lineal (pasa por el origen)','Afín (no pasa por el origen)','Constante','Cuadrática'],correct:1},
- {stem:`En el mismo contexto, si se recorren ${x} km, calcula el costo total del viaje usando f(x) = ${m}x + ${b}.`,choices:[fmt$(f(x)),fmt$(m*x),fmt$(m+b),fmt$(b)],correct:0},
- {stem:`En el modelo f(x) = ${m}x + ${b}, selecciona correctamente la pareja (pendiente; intercepto).`,choices:[`Pendiente ${m}; intercepto ${b}`,`Pendiente ${b}; intercepto ${m}`,`Pendiente ${m}; intercepto 0`,`Pendiente 0; intercepto ${b}`],correct:0}
-]; }
-
-function bankRend(){ const r=RNG.pick([12,13,14,15,16,18]); const L=RNG.pick([10,20,30,40]); return [
- {stem:`Un automóvil rinde ${r} km por cada litro de combustible. Sea f(x) el número de kilómetros que puede recorrer con x litros. ¿Cuál es el modelo correcto para f(x)?`,choices:[`f(x) = ${r}x`,`f(x) = x/${r}`,`f(x) = ${r}/x`,`f(x) = x`],correct:0},
- {stem:`Según el modelo f(x) = ${r}x, indica el tipo de función (considerando si pasa o no por el origen).`,choices:['Lineal (proporcional, pasa por el origen)','Afín (no pasa por el origen)','Constante','Cuadrática'],correct:0},
- {stem:`Usa el modelo f(x) = ${r}x para determinar cuántos kilómetros se recorren con ${L} litros (toma x = ${L}).`,choices:[`${r*L} km`,`${L*r/2} km`,`${r+L} km`,`${L} km`],correct:0}
-]; }
-
-function bankCosto(){ const c=RNG.step(1000,5000,500); const F=RNG.step(30000,80000,5000); const x=RNG.pick([20,50,100,200]); const C=(xx)=>c*xx+F; return [
- {stem:`Una fábrica tiene un costo fijo de ${fmt$(F)} y un costo variable de ${fmt$(c)} por cada unidad producida. Si x es el número de unidades, ¿cuál es el modelo de costo total f(x) en pesos?`,choices:[`f(x) = ${c}x + ${F}`,`f(x) = ${c}x`,`f(x) = ${F}x + ${c}`,`f(x) = ${F} - ${c}x`],correct:0},
- {stem:`Respecto del modelo f(x) = ${c}x + ${F}, ¿de qué tipo de función se trata?`,choices:['Afín (no pasa por el origen)','Lineal (pasa por el origen)','Constante','Exponencial'],correct:0},
- {stem:`Usando f(x) = ${c}x + ${F}, calcula el costo total de producir ${x} unidades.`,choices:[fmt$(C(x)),fmt$(c*x),fmt$(C(x)*3),fmt$(F)],correct:0}
-]; }
-
-function bankVend(){ const p=RNG.step(300,900,50); const B=RNG.step(50000,120000,10000); const x=RNG.pick([100,200,400]); const f=(xx)=>p*xx+B; return [
- {stem:`Una persona vendedora recibe un sueldo base de ${fmt$(B)} más una comisión de ${fmt$(p)} por cada libro vendido. Si vende x libros, ¿cuál es el modelo de ingreso total f(x) en pesos?`,choices:[`f(x) = ${p}x + ${B}`,`f(x) = ${B}x + ${p}`,`f(x) = ${p}x`,`f(x) = ${B} - ${p}x`],correct:0},
- {stem:`Considera f(x) = ${p}x + ${B}. Indica el tipo de función (respecto de pasar o no por el origen).`,choices:['Afín (no pasa por el origen)','Lineal (pasa por el origen)','Constante','Logarítmica'],correct:0},
- {stem:`Si la persona vende ${x} libros, calcula su ingreso total usando f(x) = ${p}x + ${B}.`,choices:[fmt$(f(x)),fmt$(p*x),fmt$(B + p*Math.floor(x/2)),fmt$(B + 2*p*x)],correct:0}
-]; }
-
-function makeQuestions(){
-  const raw=[...bankTaxi(),...bankRend(),...bankCosto(),...bankVend()];
-  return raw.map(q=>({...q,userChoice:null,isGraded:false,isCorrect:false}));
-}
-
-/********* Estado *********/
-let QUESTIONS=[]; let current=0;
-
-/********* Render *********/
-function renderMap(){
-  const cont=$('#mapa');
-  cont.replaceChildren();
-  QUESTIONS.forEach((q,i)=>{
-    const b=document.createElement('button');
-    b.className='chip';
-    b.textContent=String(i+1);
-    if(i===current) b.classList.add('current');
-    if(q.userChoice!==null) b.classList.add('answered');
-    if(q.isGraded) b.classList.add(q.isCorrect?'ok':'bad');
-    b.addEventListener('click',()=>{ goTo(i); SFX.nav(); });
-    cont.appendChild(b);
-  });
-}
-
-function suggestResults(on){
-  const btn=$('#btnEnviar');
-  if(!btn) return;
-  if(on){ btn.classList.add('pulse','hint'); btn.setAttribute('aria-label','Ver resultados'); }
-  else { btn.classList.remove('pulse','hint'); btn.removeAttribute('aria-label'); }
-}
-
-function renderStage(){
-  const q=QUESTIONS[current];
-  const s=$('#stage');
-  s.replaceChildren();
-  suggestResults(false);
-
-  const h=document.createElement('div');
-  h.innerHTML=`<strong>Pregunta ${current+1} de ${QUESTIONS.length}</strong>`;
-  s.appendChild(h);
-
-  const p=document.createElement('p');
-  p.textContent=q.stem;
-  s.appendChild(p);
-
-  q.choices.forEach((c,i)=>{
-    const l=document.createElement('label');
-    l.className='choice';
-    const inp=document.createElement('input');
-    inp.type='radio';
-    inp.name='q'+current;
-    inp.value=String(i);
-    if(q.userChoice===i) inp.checked=true;
-    inp.disabled=q.isGraded;
-    inp.addEventListener('change',()=>{
-      q.userChoice=i;
-      SFX.choice();
-      renderMap();
-      updateScore();
-      if(current===QUESTIONS.length-1 && q.userChoice!==null){ suggestResults(true); }
-    });
-    const span=document.createElement('span');
-    span.textContent=String.fromCharCode(65+i)+'. '+c;
-    l.append(inp,span);
-    s.appendChild(l);
-  });
-
-  if(q.isGraded){
-    const fb=document.createElement('div');
-    fb.className='feedback '+(q.isCorrect?'correct':'incorrect');
-    fb.textContent=q.isCorrect?'✅ Correcto':'❌ Incorrecto';
-    s.appendChild(fb);
-  }
-
-  if(current===QUESTIONS.length-1 && q.userChoice!==null){ suggestResults(true); }
-
-  renderMap();
-  updateScore();
-  updateNavButtons();
-}
-
-function updateNavButtons(){ $('#btnPrev').disabled = (current===0); $('#btnNext').disabled = false; }
-
-function goTo(i){ current=Math.max(0,Math.min(QUESTIONS.length-1,i)); renderStage(); }
-
-function revisarActual(){
-  const q=QUESTIONS[current];
-  if(q.isGraded) return;
-  q.isGraded=true;
-  const ch = toIdx(q.userChoice);
-  q.isCorrect=(ch===q.correct);
-  if(q.isCorrect) SFX.correct(); else SFX.wrong();
-  renderStage();
-}
-
-function goPrev(){ if(current===0) return; goTo(current-1); }
-function goNext(){ if(current>=QUESTIONS.length-1){ showSummary(); return; } goTo(current+1); }
-
-function gradeAll(){
-  QUESTIONS.forEach(q=>{
-    const ch = toIdx(q.userChoice);
-    q.isGraded = true;
-    q.isCorrect = (ch===q.correct);
-  });
-  suggestResults(false);
-  renderStage();
-  showSummary();
-  sendAutoReport();
-}
-
-/********* Puntaje + Nota *********/
-function calcNota(pct){
-  // Escala 2.0–7.0 con exigencia 60% (60% => 4.0). Lineal por tramos.
-  let g;
-  if(pct<=60){ g = 2 + (pct/60)*2; } else { g = 4 + ((pct-60)/40)*3; }
-  g = Math.max(2, Math.min(7, g));
-  return g;
-}
-function fmtNota(n){ return n.toFixed(1).replace('.', ','); }
-function updateScore(){
-  const ok=countCorrectLive();
-  const tot=QUESTIONS.length; const pct = tot? Math.round(100*ok/tot) : 0;
-  const nota = calcNota(pct);
-  $('#scoreChip').textContent=`Puntaje: ${ok}/${tot} (${pct}%)`;
-  const gc=$('#gradeChip'); gc.textContent=`Nota: ${fmtNota(nota)}`;
-  if(nota>=4){ gc.style.background='#1f3a2a'; gc.style.color='#baffd3'; } else { gc.style.background='#3a1f25'; gc.style.color='#ffd6dd'; }
-}
-
-/********* Resumen + Envío *********/
-function showToast(msg,err){ const old=$('#toast'); if(old) old.remove(); const t=document.createElement('div'); t.id='toast'; t.textContent=msg; t.style.background = err ? '#3a1020' : '#101a33'; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); }
-function hideSummary(){ const o=$('#summaryOverlay'); if(o) o.remove(); }
-function showSummary(){
-  const ok=countCorrectLive();
-  const tot=QUESTIONS.length;
-  const wrong=tot-ok;
-  const pct = tot ? Math.round(100*ok/tot) : 0;
-  const gNum = calcNota(pct);
-  const gStr = fmtNota(gNum);
-  const estado = gNum >= 4 ? 'APROBADO' : 'REPROBADO';
-  hideSummary();
-  const o=document.createElement('div'); o.id='summaryOverlay';
-  const c=document.createElement('div'); c.id='summaryCard';
-  c.innerHTML=`<h2>Resultados</h2>
-    <p>Puntaje: ${ok}/${tot} (${pct}%)</p>
-    <p>Nota: ${gStr} — ${estado}</p>
-    <p>Correctas: ${ok} | Incorrectas: ${wrong}</p>
-    <button id="summaryClose">Cerrar</button>`;
-  o.appendChild(c);
-  o.addEventListener('click',e=>{ if(e.target.id==='summaryOverlay') hideSummary(); });
-  document.body.appendChild(o);
-  $('#summaryClose').addEventListener('click', hideSummary);
-}
-function buildReportText(){
-  const ok=countCorrectLive();
-  const tot=QUESTIONS.length; const pct = tot? Math.round(100*ok/tot) : 0; const nota = fmtNota(calcNota(pct));
-  let txt=`Resultados Quiz - Funciones Lineales y Afines\nPuntaje: ${ok}/${tot} (${pct}%)\nNota: ${nota}\n`;
-  QUESTIONS.forEach((q,i)=>{
-    const ch=toIdx(q.userChoice);
-    txt+=`Q${i+1}: ${q.stem}\nResp: ${q.userChoice!==null?q.choices[ch]:'(sin respuesta)'}\nCorrecta: ${q.choices[q.correct]}\nResultado: ${(ch===q.correct)?'CORRECTA':'INCORRECTA'}\n\n`;
-  });
-  return txt;
-}
-function setSending(on){ const btn=$('#btnEnviar'); if(!btn) return; if(on){ btn.disabled=true; if(!btn.dataset.prevText){ btn.dataset.prevText=btn.textContent; } btn.textContent='Enviando…'; btn.classList.add('loading'); } else { btn.disabled=false; if(btn.dataset.prevText){ btn.textContent=btn.dataset.prevText; } btn.classList.remove('loading'); } }
-
-async function sendAutoReport(){
-  setSending(true);
-  showToast('Enviando…');
-  const summary=buildReportText();
-  const ok=countCorrectLive();
-  const tot=QUESTIONS.length; const pct = tot? Math.round(100*ok/tot) : 0; const notaStr = fmtNota(calcNota(pct));
-  const short = summary.slice(0,1800);
-  const subject = `Resultados Quiz – Nota ${notaStr} (${ok}/${tot})`;
-  const qpParams = new URLSearchParams({subject, summaryText: short, text: short, payload: short, body: short, ok:String(ok), total:String(tot), pct:String(pct), note:notaStr});
-  const qp = `?${qpParams.toString()}`;
-  try{
-    if(navigator.sendBeacon){
-      const blob=new Blob([summary],{type:'text/plain;charset=UTF-8'});
-      const sent=navigator.sendBeacon(REPORT_ENDPOINT + qp, blob);
-      if(sent){ showToast('Enviado ✅'); setSending(false); return; }
-    }
-  }catch(e){ console.warn('beacon fail', e); }
-  try{
-    const body=new URLSearchParams();
-    body.set('summaryText', summary);
-    body.set('text', summary);
-    body.set('payload', summary);
-    body.set('body', summary);
-    body.set('subject', subject);
-    body.set('ok', String(ok));
-    body.set('total', String(tot));
-    body.set('pct', String(pct));
-    body.set('note', notaStr);
-    await fetch(REPORT_ENDPOINT + '?via=form',{
-      method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString(), mode:'no-cors', keepalive:true
-    });
-    showToast('Enviado ✅'); setSending(false); return;
-  }catch(e){ console.warn('form fail', e); }
-  try{
-    await fetch(REPORT_ENDPOINT + '?via=json',{
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({subject, summaryText: summary, text: summary, payload: summary, body: summary, ok, total: tot, pct, note: notaStr}), mode:'no-cors', keepalive:true
-    });
-    showToast('Enviado ✅'); setSending(false); return;
-  }catch(e){ console.warn('json fail', e); }
-  try{
-    await fetch(REPORT_ENDPOINT + qp + '&via=get', {method:'GET', mode:'no-cors', keepalive:true});
-    showToast('Enviado ✅'); setSending(false); return;
-  }catch(e){ console.error('GET fail', e); }
-  showToast('No se pudo enviar', true);
-  setSending(false);
-}
-
-/********* Bind & bootstrap *********/
-function bind(){
-  $('#btnEnviar').addEventListener('click', ()=>{ SFX.click(); gradeAll(); });
-  $('#btnReiniciar').addEventListener('click', ()=>{ SFX.click(); seed(); renderStage(); });
-  $('#btnPrev').addEventListener('click', ()=>{ SFX.nav(); goPrev(); });
-  $('#btnNext').addEventListener('click', ()=>{ SFX.nav(); goNext(); });
-  $('#btnRevisar').addEventListener('click', ()=>{ revisarActual(); });
-}
-function seed(){ QUESTIONS = makeQuestions(); QUESTIONS.forEach(q=>{ shuffleChoicesInPlace(q); if(!Number.isInteger(q.correct) || q.correct<0 || q.correct>=q.choices.length){ q.correct=0; } q.userChoice=null; q.isGraded=false; q.isCorrect=false; }); current=0; }
-
-document.addEventListener('DOMContentLoaded', ()=>{ seed(); renderStage(); bind(); selfTests(); });
-
-/********* Tests (no romper) *********/
-function selfTests(){ const results=[]; const log=(ok,msg)=>{ (ok?console.log:console.error)(`[TEST ${ok?'OK':'FAIL'}]`, msg); results.push({ok,msg}); };
- try{ log(typeof makeQuestions==='function','makeQuestions existe'); }catch(e){ log(false,'makeQuestions ausente'); }
- try{ log(Array.isArray(QUESTIONS) && QUESTIONS.length>0,'QUESTIONS seed OK'); }catch(e){ log(false,'QUESTIONS vacio'); }
- try{ log(!!document.getElementById('mapa'),'mapa presente'); }catch(e){ log(false,'faltante mapa'); }
- try{ const chips=document.querySelectorAll('#mapa .chip'); log(chips.length===QUESTIONS.length,'chips == preguntas'); }catch(e){ log(false,'chips incorrectos'); }
- try{ const q0=QUESTIONS[0]; log(q0.correct>=0 && q0.correct<q0.choices.length,'índice de correcta válido'); }catch(e){ log(false,'índice de correcta inválido'); }
- try{ const anyAnswered = QUESTIONS.some(q=>q.userChoice!==null); log(!anyAnswered,'inicio sin preguntas marcadas'); }catch(e){ log(false,'inicio marcado'); }
- try{ const last = QUESTIONS.length-1; const backup = { u:QUESTIONS[last].userChoice, g:QUESTIONS[last].isGraded, c:QUESTIONS[last].isCorrect };
-     goTo(last); QUESTIONS[last].userChoice = 0; renderStage(); const hinted = document.getElementById('btnEnviar').classList.contains('pulse'); log(hinted,'al responder la última, botón Resultados resalta');
-     QUESTIONS[last].userChoice = backup.u; QUESTIONS[last].isGraded=backup.g; QUESTIONS[last].isCorrect=backup.c; goTo(0); renderStage();
- }catch(e){ log(false,'sugerencia de Resultados'); }
- try{ const idxs=[0,1,2].filter(i=>i<QUESTIONS.length); const snap=QUESTIONS.map(q=>({u:q.userChoice,g:q.isGraded,c:q.isCorrect})); idxs.forEach(i=>{ QUESTIONS[i].userChoice = QUESTIONS[i].correct; }); const live=countCorrectLive(); log(live>=idxs.length,'live-score cuenta correctas'); QUESTIONS.forEach((q,i)=>{ q.userChoice=snap[i].u; q.isGraded=snap[i].g; q.isCorrect=snap[i].c; }); renderStage(); }catch(e){ log(false,'prueba live-score'); }
- window.__QUIZ_TESTS__=results; }
-</script>
 </body>
 </html>
