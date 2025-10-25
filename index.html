@@ -16,7 +16,7 @@
             --chip:#1b2544; --chip-hover:#25335d;
         }
         
-        /* 1. Ajuste para móvil: Usar flex-column para asegurar que los controles de navegación no se salgan de pantalla */
+        /* Ajuste para móvil: Usar flex-column para asegurar que los controles de navegación no se salgan de pantalla */
         body { 
             font-family: 'Inter', sans-serif; 
             background: var(--bg); 
@@ -211,11 +211,11 @@
                     question.correctAnswer = val.toString();
                     
                     const incorrects1 = new Set([val, m * x - n, m + x + n]);
-                    while (incorrects1.size < 4) {
+                    while (incorrects1.size < 3) {
                         const distractor = val + randInt(-4, 4);
                         if (distractor !== val) incorrects1.add(distractor);
                     }
-                    question.choices = shuffleArray(Array.from(incorrects1).slice(0, 4).map(v => v.toString()));
+                    question.choices = shuffleArray(Array.from(incorrects1).slice(0, 3).map(v => v.toString()));
                     break;
 
                 // TIPO 2: Cálculo de Pendiente (dada la función) - Solicitado
@@ -223,11 +223,11 @@
                     question.text = `¿Cuál es la pendiente ($m$) de la función $f(x) = ${m}x ${n > 0 ? '+' : ''} ${n}$?`;
                     question.correctAnswer = m.toString();
                     
-                    const incorrects2 = new Set([m, n, -m, -n]);
-                    while (incorrects2.size < 4) {
+                    const incorrects2 = new Set([m, n, -m]);
+                    while (incorrects2.size < 3) {
                         incorrects2.add(m + randInt(-3, 3));
                     }
-                    question.choices = shuffleArray(Array.from(incorrects2).slice(0, 4).map(v => v.toString()));
+                    question.choices = shuffleArray(Array.from(incorrects2).slice(0, 3).map(v => v.toString()));
                     break;
                 
                 // TIPO 3: Clasificación Lineal vs Afín (n=0 vs n!=0) - Solicitado
@@ -240,7 +240,7 @@
                         question.text = `¿Qué tipo de función es $f(x) = ${m}x ${n > 0 ? '+' : ''} ${n}$?`;
                         question.correctAnswer = "Afín";
                     }
-                    question.choices = shuffleArray(["Afín", "Constante", "Lineal", "Cuadrática"].filter(c => c !== question.correctAnswer).slice(0, 3).concat(question.correctAnswer));
+                    question.choices = shuffleArray(["Afín", "Constante", "Lineal", "Cuadrática"].filter(c => c !== question.correctAnswer).slice(0, 2).concat(question.correctAnswer));
                     break;
 
                 // TIPO 4: Intercepto con Y (Ordenada al Origen) - Solicitado
@@ -251,8 +251,8 @@
                     const incorrects4 = new Set([question.correctAnswer]);
                     incorrects4.add(`$(${n}, 0)$`);
                     incorrects4.add(`$(0, ${m})$`);
-                    incorrects4.add(`$(${m}, ${n})$`);
-                    question.choices = shuffleArray(Array.from(incorrects4).slice(0, 4));
+                    
+                    question.choices = shuffleArray(Array.from(incorrects4).slice(0, 3));
                     break;
                 
                 // TIPO 5: Pasa por el Origen (Lineal) - Solicitado: "Una función lineal siempre pasa por el punto:"
@@ -260,7 +260,7 @@
                     question.text = "Una función lineal (caso particular de afín) siempre pasa por el punto:";
                     question.correctAnswer = "$(0, 0)$ (Origen)";
                     
-                    question.choices = shuffleArray(["$(0, 1)$", "$(1, 0)$", "$(0, 0)$ (Origen)", "$(-1, 1)$"]);
+                    question.choices = shuffleArray(["$(0, 1)$", "$(1, 0)$", "$(0, 0)$ (Origen)"].filter(c => c !== question.correctAnswer).slice(0, 2).concat(question.correctAnswer));
                     break;
                 
                 // TIPO 6: Pasa por un punto que NO es el Origen (Afín) - Solicitado
@@ -269,7 +269,7 @@
                     question.text = `Si la función $f(x) = -4x + 6$ es afín, ¿por qué punto **no** pasa su gráfica?`;
                     question.correctAnswer = "$(0, 0)$";
                     
-                    question.choices = shuffleArray(["$(1, 2)$", "$(-1, 10)$", "$(0, 6)$", "$(0, 0)$"]);
+                    question.choices = shuffleArray(["$(1, 2)$", "$(0, 6)$", "$(0, 0)$"].filter(c => c !== question.correctAnswer).slice(0, 2).concat(question.correctAnswer));
                     break;
 
                 // TIPO 7: Ecuación desde Puntos (Pendiente m e intercepto n) - Solicitado
@@ -283,9 +283,8 @@
                     const incorrects7 = new Set([question.correctAnswer]);
                     incorrects7.add(`$f(x) = ${n7 === 1 ? '' : n7}x ${m7 > 0 ? '+' : ''} ${m7}$`); 
                     incorrects7.add(`$f(x) = ${m7 === 1 ? '' : m7}x ${n7 > 0 ? '-' : '+'} ${Math.abs(n7)}$`); 
-                    incorrects7.add(`$f(x) = ${-m7 === 1 ? '' : -m7}x ${n7 > 0 ? '+' : ''} ${n7}$`); 
                     
-                    question.choices = shuffleArray(Array.from(incorrects7).slice(0, 4));
+                    question.choices = shuffleArray(Array.from(incorrects7).slice(0, 3));
                     break;
                 
                 // TIPO 8: PUNTO CERO (Raíz) o EVALUACIÓN - CORREGIDA Y VARIADA
@@ -304,12 +303,12 @@
                         result = x8;
                         question.text = `Para $f(x) = ${m8 === 1 ? '' : m8}x ${n8 > 0 ? '+' : ''} ${n8}$, ¿cuál es el valor de $x$ cuando $f(x) = 0$?`;
                         
-                        const incorrects8 = new Set([result, -result, n8, m8]);
-                        while (incorrects8.size < 4) {
+                        const incorrects8 = new Set([result, -result, n8]);
+                        while (incorrects8.size < 3) {
                              const distractor = result + randInt(-3, 3);
                              if (distractor !== result) incorrects8.add(distractor);
                         }
-                        question.choices = shuffleArray(Array.from(incorrects8).slice(0, 4).map(v => v.toString()));
+                        question.choices = shuffleArray(Array.from(incorrects8).slice(0, 3).map(v => v.toString()));
 
                     } else {
                         // Pregunta por la Imagen (f(x) cuando x=...)
@@ -317,12 +316,12 @@
                         result = m8 * x_val + n8;
                         question.text = `Para $f(x) = ${m8 === 1 ? '' : m8}x ${n8 > 0 ? '+' : ''} ${n8}$, ¿cuál es el valor de $f(${x_val})$?`;
                         
-                        const incorrects8 = new Set([result, -result, n8, m8]);
-                        while (incorrects8.size < 4) {
+                        const incorrects8 = new Set([result, -result, n8]);
+                        while (incorrects8.size < 3) {
                              const distractor = result + randInt(-4, 4);
                              if (distractor !== result) incorrects8.add(distractor);
                         }
-                        question.choices = shuffleArray(Array.from(incorrects8).slice(0, 4).map(v => v.toString()));
+                        question.choices = shuffleArray(Array.from(incorrects8).slice(0, 3).map(v => v.toString()));
                     }
                     
                     question.correctAnswer = result.toString();
@@ -338,18 +337,16 @@
                     
                     const incorrects9 = new Set([question.correctAnswer]);
                     incorrects9.add(`$C(x) = ${fixed9}x + ${variable9}$`);
-                    incorrects9.add(`$C(x) = ${variable9}x - ${fixed9}$`);
-                    incorrects9.add(`$C(x) = ${fixed9}x - ${variable9}$`);
-                    incorrects9.add(`$C(x) = ${variable9 + fixed9}x$`); // Nueva 4ta alternativa
+                    incorrects9.add(`$C(x) = ${fixed9 + variable9}x$`); 
                     
-                    question.choices = shuffleArray(Array.from(incorrects9).slice(0, 4));
+                    question.choices = shuffleArray(Array.from(incorrects9).slice(0, 3));
                     break;
 
                 // TIPO 10: TÉRMINOS (¿Qué es n?) - Solicitado
                 case 10:
                     question.text = "¿Qué representa la '$n$' en la forma $f(x) = mx + n$?";
                     question.correctAnswer = "El intercepto con Y";
-                    question.choices = shuffleArray(["La pendiente", "La variable dependiente", "El intercepto con Y", "El crecimiento"]);
+                    question.choices = shuffleArray(["La pendiente", "La variable dependiente", "El intercepto con Y"].filter(c => c !== question.correctAnswer).slice(0, 2).concat(question.correctAnswer));
                     break;
                 
                 // TIPO 11: Repetición TIPO 1 (Evaluación)
@@ -367,6 +364,7 @@
             const correctIndex = question.choices.findIndex(c => c === question.correctAnswer.toString());
             
             if (correctIndex === -1) {
+                 // Si la respuesta correcta no está en el set reducido, regenerar
                  return generateRandomQuestion(type); 
             }
 
@@ -404,8 +402,7 @@
                  playSound('click'); 
                  question.userChoice = choiceIndex;
             } else {
-                 // Permitir deseleccionar si se pulsa la misma, aunque aquí lo forzamos a ser obligatorio
-                 // question.userChoice = null; 
+                 // No permitir deseleccionar
             }
 
             if (STATE.current === STATE.questions.length - 1) {
@@ -480,7 +477,9 @@
             currentQ.choices.forEach((choiceText, index) => {
                 const isSelected = currentQ.userChoice === index;
                 
-                let choiceClasses = "chip p-4 md:p-5 border-2 cursor-pointer transition duration-300 shadow-xl text-center font-medium text-lg ";
+                // Reducción de tamaño: p-3/p-4, text-base/text-lg
+                // Margen amarillo sutil: ring-1 ring-warn/50
+                let choiceClasses = "chip p-3 md:p-4 text-base md:text-lg border-2 cursor-pointer transition duration-300 shadow-xl text-center font-medium ring-1 ring-warn/50 ring-offset-panel ";
                 
                 if (STATE.isGraded) {
                     if (index === currentQ.correct) {
@@ -506,8 +505,6 @@
                 choiceEl.className = choiceClasses;
                 choiceEl.innerHTML = formatMath(choiceText);
                 
-                // El contenedor completo (div.chip) es el que tiene el evento click,
-                // asegurando que toda el área sea sensible al toque/clic.
                 if (!STATE.isGraded) {
                     choiceEl.onclick = () => selectChoice(index);
                 }
@@ -712,7 +709,7 @@
             document.getElementById('btnNext').onclick = () => navigate(1);
             
             renderStage();
-            showToast(`Bienvenido Profesor Mauricio, quiz listo para $8^{\text{vo}}$ Básico.`, 'accent');
+            showToast(`Quiz listo con 3 opciones por pregunta.`, 'accent');
         }
 
         document.addEventListener('DOMContentLoaded', initApp);
