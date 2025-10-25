@@ -74,6 +74,11 @@
             border-radius: 4px;
             color: var(--accent);
         }
+
+        /* CORRECCIÓN DE USABILIDAD MÓVIL: Asegura que el botón de resultados sea fácilmente clickeable */
+        #btnEnviar {
+            pointer-events: auto;
+        }
     </style>
     <script>
         // *****************************************************************************
@@ -140,7 +145,10 @@
         // FUNCIÓN DE NOTIFICACIÓN TOAST
         // -----------------------------------------------------------
 
+        // AUMENTO DEL TIEMPO: 3000ms -> 6000ms
+        const TOAST_DURATION = 6000; 
         let toastTimeout;
+        
         function showToast(message, type = 'panel') {
             const toast = document.getElementById('toast');
             
@@ -170,7 +178,7 @@
             clearTimeout(toastTimeout);
             toastTimeout = setTimeout(() => {
                 toast.classList.remove('show-toast');
-            }, 3000); 
+            }, TOAST_DURATION); 
         }
 
 
@@ -759,6 +767,7 @@
                         &#9664; Anterior
                     </button>
                     
+                    <!-- Botón de Resultados: La clase #btnEnviar se marcó como pointer-events: auto; en CSS para mejorar la interacción táctil. -->
                     <button id="btnEnviar" class="action-button bg-warn text-bg p-3 w-1/3 font-extrabold hover:opacity-80 disabled:opacity-30">
                         Resultados
                     </button>
