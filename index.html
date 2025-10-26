@@ -17,11 +17,12 @@
             --text:#212529;  /* Texto oscuro casi negro */
             --accent:#1e40af; /* Azul oscuro (Nuevo color de acento) */
             --warn:#ffc107;  /* Amarillo para CTA */
-            --error:#dc3545; 
+            --error:#dc3545; /* Rojo para errores/destacar Área de Matemáticas */
             --ok:#28a745; 
             --chip:#e9ecef; /* Gris claro para chips */
             --chip-hover:#dee2e6;
             --choice-text: #000000; /* Texto de alternativas ahora es negro puro */
+            --selected-choice-bg: #0ea5e9; /* Nuevo Celeste (Sky Blue 500) para la selección */
         }
         
         body { 
@@ -43,15 +44,14 @@
             50% { opacity: 0.8; box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
         }
         
-        /* Asegura que el texto seleccionado también sea negro si no está calificado, 
-           pero se vuelve blanco en fondo azul por contraste. Lo manejamos en JS también. */
+        /* Modificado para usar el nuevo color celeste */
         .choice-selected { 
-            background-color: var(--accent) !important; 
-            color: var(--panel) !important; /* Texto blanco en fondo azul por contraste */
+            background-color: var(--selected-choice-bg) !important; 
+            color: var(--panel) !important; /* Texto blanco en fondo celeste por contraste */
             font-weight: 600;
         }
 
-        /* Clase general para el color de texto de las alternativas */
+        /* Clase general para el color de texto de las alternativas (DEBE ser negro) */
         .choice-text-color {
             color: var(--choice-text) !important; /* Forzar negro en todos los estados base */
         }
@@ -503,6 +503,7 @@
                         choiceClasses += " border-ok bg-ok/10 choice-correct-text";
                         if (isSelected) {
                             // Cuando es correcta y seleccionada, el texto se vuelve blanco para contraste en fondo verde.
+                            choiceClasses = choiceClasses.replace('choice-text-color', ''); // Eliminar forzado de negro
                             choiceClasses += " choice-selected !bg-ok !text-white !shadow-xl"; 
                         }
                     } else if (isSelected && !currentQ.isCorrect) {
@@ -513,24 +514,16 @@
                 } 
                 else {
                     if (isSelected) {
-                        // Cuando está seleccionada y no calificada, el texto se vuelve blanco en fondo azul oscuro.
+                        // Cuando está seleccionada y no calificada, usa el color celeste (var(--selected-choice-bg))
+                        choiceClasses = choiceClasses.replace('choice-text-color', ''); // Eliminar forzado de negro
                         choiceClasses += " choice-selected border-accent bg-accent/90 text-white shadow-2xl scale-[1.02] glow-accent";
                     } else {
+                        // ESTE ES EL CASO DONDE DEBE SER NEGRO PURO
                         choiceClasses += " border-chip/50 bg-chip hover:bg-chip-hover";
+                        // NO remover choice-text-color: mantiene el texto negro para la alternativa no seleccionada.
                     }
                 }
                 
-                // Si está seleccionada (no calificada) o es correcta (calificada) el texto es blanco.
-                // Si no, forzamos el texto a negro puro (choice-text-color) si el estado no es el de acento.
-                if (!isSelected && !STATE.isGraded) {
-                    choiceClasses += " text-black"; // Asegura negro en estado base
-                } else if (STATE.isGraded && index !== currentQ.correct && isSelected) {
-                    choiceClasses += " text-error"; // Texto error
-                } else if (STATE.isGraded && index === currentQ.correct && !isSelected) {
-                     choiceClasses += " text-ok"; // Texto ok
-                }
-
-
                 const choiceEl = document.createElement('div');
                 choiceEl.className = choiceClasses;
                 choiceEl.innerHTML = formatMath(choiceText);
@@ -574,9 +567,10 @@
                     else if (q.userChoice !== null) chipClasses = chipClasses.replace(/bg-.*/, 'bg-error text-white shadow-lg');
                 }
                 
-                // Pregunta Actual (Usa ring y sombra más dramática)
+                // Pregunta Actual (Usa ring y sombra más dramática, texto negro)
                 if (index === STATE.current) {
-                    chipClasses = 'chip text-xs px-3 py-1 cursor-pointer font-bold transition duration-150 bg-accent text-white shadow-xl scale-110 ring-2 ring-warn/80 ring-offset-2 ring-offset-panel';
+                    // Texto NEGRO (text-black) para que se vea sobre el ring amarillo/fondo claro
+                    chipClasses = 'chip text-xs px-3 py-1 cursor-pointer font-bold transition duration-150 bg-panel text-black shadow-xl scale-110 ring-2 ring-warn/80 ring-offset-2 ring-offset-panel';
                 }
 
 
@@ -706,7 +700,8 @@
             document.getElementById('modal-content').innerHTML = restartButtonHTML + contentHTML + 
                 '<p class="mt-8 text-center"><button onclick="hideModal()" class="action-button bg-chip text-text py-3 px-6 hover:bg-chip-hover border border-gray-300">Cerrar y Revisar</button></p>';
             
-            document.getElementById('result-modal').classList.remove('hidden');
+            // Se usa items-start pt-16 para mostrarlo más arriba
+            document.getElementById('result-modal').classList.remove('hidden'); 
         }
         
         function hideModal() {
@@ -769,14 +764,15 @@
                 <!-- Título y Subtítulo (Logo + Área de Matemáticas) -->
                 <div class="flex flex-col">
                     <h1 class="text-2xl font-extrabold text-accent flex items-center gap-2">
+                        <!-- Icono de Lápiz para el encabezado del Quiz -->
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-warn">
                             <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
                             <path d="m15 5 4 4"/>
                         </svg>
                         Funciones
                     </h1>
-                    <!-- Área de Matemáticas con logo pequeño del colegio -->
-                    <p class="text-xs font-semibold mt-[-2px] flex items-center" style="color:var(--warn); opacity: 0.8;">
+                    <!-- Área de Matemáticas - CAMBIADO A ROJO (var(--error)) -->
+                    <p class="text-xs font-semibold mt-[-2px] flex items-center" style="color:var(--error); opacity: 0.9;">
                         <img 
                             src="https://colegiocristianolebeaujour.cl/static/media/colegio-icon.0dca672a2e0028884bbe.png" 
                             alt="Logo Colegio" 
@@ -855,14 +851,21 @@
                     />
                 </div>
                 
-                <!-- Columna de Texto -->
-                <div class="md:w-2/3 md:text-left text-center">
-                    <h2 class="text-4xl font-extrabold mb-4 text-accent flex items-center justify-center md:justify-start gap-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-warn"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                <!-- Columna de Texto - MODIFICADO A ALINEACIÓN IZQUIERDA -->
+                <div class="md:w-2/3 md:text-left text-center md:text-left">
+                    <h2 class="text-4xl font-extrabold mb-1 text-accent flex items-center justify-center md:justify-start gap-3">
+                        <!-- Icono de Lápiz -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-warn"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                         ¡Matemáticas en Casa! 
                     </h2>
+                    
+                    <!-- NUEVO SUBTÍTULO PARA EL NIVEL -->
+                    <p class="text-lg font-semibold mb-4 text-muted border-b pb-2 border-gray-200">
+                        Material de estudio para 8° Básico
+                    </p>
+
                     <p class="text-xl mb-4 text-text">
-                        Bienvenido a tu Quiz Dinámico de Funciones (Lineales y Afines), diseñado por el Colegio Le Beau Jour para que ¡¡estudies en casa!!.
+                        Bienvenido a tu Quiz Dinámico de Funciones (Lineales y Afines), diseñado por el Colegio Le Beau Jour.
                     </p>
                     <p class="text-lg text-muted mb-6 italic">
                         Te recomiendo tener a mano tu cuaderno o apuntes de Funciones. Así podrás resolver tus dudas y reforzar los conceptos al instante!
@@ -877,7 +880,8 @@
     </div>
     
     <!-- Modal de Resultados (usado para la calificación) -->
-    <div id="result-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center hidden p-4" onclick="hideModal()">
+    <!-- CLASES MODIFICADAS: items-start pt-16 para subirlo -->
+    <div id="result-modal" class="fixed inset-0 bg-black/80 z-50 flex items-start pt-16 justify-center hidden p-4" onclick="hideModal()">
         <div class="bg-panel p-8 md:p-10 rounded-2xl shadow-2xl max-w-lg w-full text-center border-t-4 border-accent" onclick="event.stopPropagation()">
             <div id="modal-content">
                 <!-- Contenido dinámico de resultados -->
