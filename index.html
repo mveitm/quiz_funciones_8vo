@@ -9,18 +9,19 @@
     <!-- Carga de Tone.js para efectos de sonido (minimalista) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
-        /* Definición de variables CSS para el tema CLARO */
+        /* Definición de variables CSS para el tema CLARO/SUAVE */
         :root{ 
-            --bg:#f8f9fc;    /* Fondo muy claro, casi blanco */
+            --bg:#f0f1f4;    /* Fondo gris muy claro, suave */
             --panel:#ffffff; /* Panel blanco puro */
             --muted:#6c757d; 
-            --text:#212529;  /* Texto oscuro */
-            --accent:#007bff; /* Azul brillante (el nuevo color de acento) */
+            --text:#212529;  /* Texto oscuro casi negro */
+            --accent:#1e40af; /* Azul oscuro (Nuevo color de acento) */
             --warn:#ffc107;  /* Amarillo para CTA */
             --error:#dc3545; 
             --ok:#28a745; 
             --chip:#e9ecef; /* Gris claro para chips */
             --chip-hover:#dee2e6;
+            --choice-text: #000000; /* Texto de alternativas ahora es negro puro */
         }
         
         body { 
@@ -31,7 +32,7 @@
             display: flex;
             flex-direction: column;
             /* Fondo con granularidad sutil para sofisticación */
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' fill='%23f8f9fc' filter='url(%23noiseFilter)' opacity='0.2'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' fill='%23f0f1f4' filter='url(%23noiseFilter)' opacity='0.2'/%3E%3C/svg%3E");
         }
         
         /* Estilos base */
@@ -46,6 +47,11 @@
             background-color: var(--accent) !important; 
             color: var(--panel) !important; /* Texto blanco en fondo azul */
             font-weight: 600;
+        }
+
+        /* Texto de las alternativas en color negro puro */
+        .choice-text-color {
+            color: var(--choice-text);
         }
         
         /* Layout responsivo mejorado */
@@ -64,7 +70,7 @@
         /* Efectos de Brillo (Glow) */
         .glow-on-hover:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 0 15px rgba(0, 123, 255, 0.5), 0 6px 15px rgba(0, 0, 0, 0.15); /* Glow azul */
+            box-shadow: 0 0 15px rgba(30, 64, 175, 0.5), 0 6px 15px rgba(0, 0, 0, 0.15); /* Glow azul oscuro */
         }
         .glow-accent {
             box-shadow: 0 0 8px var(--accent), inset 0 0 5px rgba(0, 0, 0, 0.05);
@@ -110,7 +116,7 @@
             box-shadow: 0 0 15px var(--warn), 0 6px 15px rgba(0, 0, 0, 0.2);
         }
 
-        /* Estilo para el botón Reiniciar Quiz (visible y contrastante) */
+        /* Estilo para el botón Reiniciar Quiz (visible y contrastante) - Ahora fuera del modal */
         .btn-restart {
             background-color: var(--error) !important;
             color: var(--panel) !important; /* Texto blanco en rojo */
@@ -132,6 +138,15 @@
             object-fit: contain;
         }
 
+        /* Nuevo estilo para el contenedor de resultados que incluye el botón de reiniciar */
+        .results-container {
+             border: 1px solid var(--chip);
+             background-color: var(--panel);
+             padding: 1.5rem;
+             border-radius: 1rem;
+             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
     </style>
     <script>
         // *****************************************************************************
@@ -147,7 +162,7 @@
             isGraded: false, 
             correctCount: 0, 
             TOTAL_QUESTIONS: 12, 
-            isAppReady: false, // Nuevo estado para controlar si el usuario ha comenzado
+            isAppReady: false, 
         };
 
         // -----------------------------------------------------------
@@ -183,7 +198,7 @@
             
             // Adaptar clases de color a tema claro
             switch (type) {
-                case 'accent': toast.classList.add('bg-blue-500', 'text-white'); break;
+                case 'accent': toast.classList.add('bg-blue-800', 'text-white'); break; /* Usando azul oscuro para toast */
                 case 'warn': toast.classList.add('bg-yellow-500', 'text-gray-800'); break;
                 case 'error': toast.classList.add('bg-red-500', 'text-white'); break;
                 case 'ok': toast.classList.add('bg-green-500', 'text-white'); break;
@@ -357,7 +372,6 @@
             STATE.current = 0;
             STATE.isGraded = false;
             STATE.correctCount = 0;
-            // STATE.isAppReady se mantiene en false al inicio
         }
 
         function selectChoice(choiceIndex) {
@@ -431,6 +445,9 @@
                 document.getElementById('scoreBadge').textContent = "Quiz Pendiente";
                 return;
             }
+            
+            // Ocultar modal de resultados al avanzar de pregunta
+            hideModal(); 
 
             if (STATE.questions.length === 0) {
                 document.getElementById('stage').innerHTML = '<p class="text-center text-muted">Generando preguntas...</p>';
@@ -458,13 +475,13 @@
                 const isSelected = currentQ.userChoice === index;
                 
                 // Adaptar clases de color a tema claro
-                let choiceClasses = "chip p-3 md:p-4 text-base md:text-lg border-2 cursor-pointer transition duration-300 shadow-lg text-center font-medium glow-on-hover ";
+                let choiceClasses = "chip p-3 md:p-4 text-base md:text-lg border-2 cursor-pointer transition duration-300 shadow-lg text-center font-medium glow-on-hover choice-text-color ";
                 
                 if (STATE.isGraded) {
                     if (index === currentQ.correct) {
                         choiceClasses += " border-ok bg-ok/10 text-ok glow-accent";
                         if (isSelected) {
-                            choiceClasses += " choice-selected !bg-ok !text-white !shadow-xl";
+                            choiceClasses += " choice-selected !bg-ok !text-white !shadow-xl !choice-text-color";
                         }
                     } else if (isSelected && !currentQ.isCorrect) {
                         choiceClasses += " border-error bg-error/10 text-error";
@@ -474,7 +491,7 @@
                 } 
                 else {
                     if (isSelected) {
-                        choiceClasses += " choice-selected border-accent bg-accent/90 text-white shadow-2xl scale-[1.02] glow-accent";
+                        choiceClasses += " choice-selected border-accent bg-accent/90 text-white shadow-2xl scale-[1.02] glow-accent !choice-text-color";
                     } else {
                         choiceClasses += " border-chip/50 bg-chip hover:bg-chip-hover text-text";
                     }
@@ -544,16 +561,15 @@
 
             if (STATE.isGraded) {
                 // Estado Calificado: Botón Reiniciar
-                btnEnviar.textContent = 'Reiniciar Quiz';
-                btnEnviar.classList.remove('pulse', 'opacity-30');
-                btnEnviar.classList.add('btn-restart'); // Clase con estilo de Reinicio
-                btnEnviar.style.backgroundImage = 'none'; 
+                btnEnviar.textContent = 'Revisar Respuestas'; // Mantenemos el botón para revisar, la acción de Reiniciar va en el modal
+                btnEnviar.classList.remove('pulse', 'opacity-30', 'btn-restart');
+                btnEnviar.style.backgroundImage = 'linear-gradient(to right, var(--accent), #1f50a8)'; // Azul oscuro para revisión
                 btnEnviar.disabled = false;
-                btnEnviar.onclick = restartQuiz;
+                btnEnviar.onclick = () => navigate(0); // Simplemente vuelve a la primera pregunta para revisar
             } else {
                 // Estado No Calificado: Botón Resultados
                 btnEnviar.textContent = `Resultados (${STATE.questions.filter(q=>q.userChoice!==null).length}/${STATE.questions.length})`;
-                btnEnviar.classList.remove('btn-restart'); // Asegura que no tenga el estilo de Reinicio
+                btnEnviar.classList.remove('btn-restart'); 
                 btnEnviar.classList.toggle('pulse', isAllAnswered);
                 btnEnviar.classList.toggle('opacity-30', !isAllAnswered);
                 btnEnviar.style.backgroundImage = isAllAnswered ? 'linear-gradient(to right, var(--warn), #ffda5a)' : 'none';
@@ -611,10 +627,13 @@
         }
 
         function generateReport(correctCount, totalQuestions, percentage) {
-            let summaryHTML = `<h2 class="text-3xl font-extrabold mb-2">¡Quiz Terminado!</h2>`;
+            let summaryHTML = `<h2 class="text-3xl font-extrabold mb-4 text-accent">Tu Desempeño</h2>`;
+            summaryHTML += `<div class="p-6 md:p-8 results-container">`;
             summaryHTML += `<p class="text-xl mb-4 text-muted">Tu puntaje es:</p>`;
             summaryHTML += `<p class="text-2xl mb-4">Correctas: <span class="text-ok font-bold">${correctCount}</span> de <span class="font-bold">${totalQuestions}</span></p>`;
-            summaryHTML += `<p class="text-5xl font-black mb-6" style="color:var(--accent)">${percentage}%</p>`;
+            summaryHTML += `<p class="text-6xl font-black mb-0" style="color:var(--accent)">${percentage}%</p>`;
+            summaryHTML += `</div>`;
+
 
             let rawText = `[REPORTE QUIZ FUNCIONES LINEALES Y AFINES - DINÁMICO]\n`;
             rawText += `Nota Final: ${percentage}% (${correctCount}/${totalQuestions})\n`;
@@ -640,8 +659,19 @@
         }
         
         function showSummaryModal(contentHTML) {
-            document.getElementById('modal-content').innerHTML = contentHTML + 
-                '<p class="mt-8 text-center"><button onclick="hideModal()" class="action-button bg-accent text-white py-3 px-6 hover:bg-accent/80 glow-on-hover">Revisar Respuestas</button></p>';
+            
+            // Botón Reiniciar va antes del cuadro de resultados (contentHTML)
+            const restartButtonHTML = `
+                <div class="mb-6">
+                    <button onclick="restartQuiz()" class="action-button btn-restart py-3 px-8 text-xl font-black w-full glow-on-hover">
+                        Reiniciar Quiz (Generar Nuevas Preguntas)
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('modal-content').innerHTML = restartButtonHTML + contentHTML + 
+                '<p class="mt-8 text-center"><button onclick="hideModal()" class="action-button bg-chip text-text py-3 px-6 hover:bg-chip-hover border border-gray-300">Cerrar y Revisar</button></p>';
+            
             document.getElementById('result-modal').classList.remove('hidden');
         }
         
