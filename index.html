@@ -21,7 +21,9 @@
             --ok:#28a745; 
             --chip:#e9ecef; /* Gris claro para chips */
             --chip-hover:#dee2e6;
-            --choice-text: #000000; /* Texto de alternativas ahora es negro puro */
+            /* CAMBIO 1: Texto de alternativas ahora es negro puro y en negrita */
+            --choice-text: #000000; 
+            --choice-font-weight: 700; /* Negrita */
             --selected-choice-bg: #60a5fa; /* Nuevo Celeste (Blue 400 de Tailwind) para la selección */
         }
         
@@ -48,17 +50,18 @@
         .choice-selected { 
             background-color: var(--selected-choice-bg) !important; 
             color: var(--panel) !important; /* Texto blanco en fondo celeste por contraste */
-            font-weight: 600;
+            font-weight: var(--choice-font-weight) !important;
         }
 
-        /* Clase general para el color de texto de las alternativas (DEBE ser negro) */
+        /* CAMBIO 1: Clase general para el color y peso de texto de las alternativas no seleccionadas */
         .choice-text-color {
-            color: var(--choice-text) !important; /* Forzar negro en todos los estados base */
+            color: var(--choice-text) !important; /* Forzar negro */
+            font-weight: var(--choice-font-weight) !important; /* Forzar negrita */
         }
 
         /* Si es correcta o incorrecta, permitimos que las clases de color de estado (ok/error) tomen el control */
-        .choice-correct-text { color: var(--ok) !important; }
-        .choice-incorrect-text { color: var(--error) !important; }
+        .choice-correct-text { color: var(--ok) !important; font-weight: var(--choice-font-weight) !important; }
+        .choice-incorrect-text { color: var(--error) !important; font-weight: var(--choice-font-weight) !important; }
 
         
         /* Layout responsivo mejorado */
@@ -108,6 +111,7 @@
             padding: 0 4px;
             border-radius: 4px;
             color: var(--accent);
+            font-weight: 700; /* Asegurar que las expresiones math también estén en negrita */
         }
         
         /* Botón de Resultados con gradiente fuerte y glow */
@@ -193,7 +197,8 @@
 
         function initializeAudio() {
             // Nuevo sonido para selección (más percusivo)
-            clickSynth = new Tone.PluckSynth({ dampening: 1000, release: 0.05 }).toDestination();
+            // CAMBIO 2: Aumentar la duración (release) para un sonido más fuerte/largo al hacer click.
+            clickSynth = new Tone.PluckSynth({ dampening: 1000, release: 0.15 }).toDestination(); 
             navSynth = new Tone.Synth({ oscillator: { type: "triangle" }, envelope: { attack: 0.005, decay: 0.15, sustain: 0.01, release: 0.1 } }).toDestination();
             successSynth = new Tone.PolySynth(Tone.Synth).toDestination();
             failSynth = new Tone.PolySynth(Tone.Synth).toDestination();
@@ -202,7 +207,8 @@
         async function playSound(type) {
             await Tone.start(); 
             switch (type) {
-                case 'click': clickSynth.triggerAttackRelease("C5", "16n"); break; 
+                // CAMBIO 2: Mayor volumen (C5) y duración (8n) para el click
+                case 'click': clickSynth.triggerAttackRelease("C5", "8n", Tone.now(), 0.8); break; 
                 case 'nav': navSynth.triggerAttackRelease("C4", "16n"); break;
                 case 'success': successSynth.triggerAttackRelease(["C5", "E5", "G5"], "4n"); break;
                 case 'fail': failSynth.triggerAttackRelease(["C3", "C#3", "D3"], "8n"); break;
@@ -402,7 +408,12 @@
                  question.userChoice = choiceIndex;
             } 
 
+            // Verificar si es la última pregunta
             if (STATE.current === STATE.questions.length - 1) {
+                // CAMBIO 3: Si se selecciona la respuesta en la última pregunta, mostrar resultados inmediatamente
+                showResults();
+            } else {
+                 // Si no es la última, solo actualizar el botón Resultados
                 const isAllAnswered = STATE.questions.every(q => q.userChoice !== null);
                 const btnEnviar = document.getElementById('btnEnviar');
                 btnEnviar.classList.toggle('pulse', isAllAnswered);
@@ -495,32 +506,33 @@
             currentQ.choices.forEach((choiceText, index) => {
                 const isSelected = currentQ.userChoice === index;
                 
-                // Aplicar choice-text-color para garantizar texto negro para las alternativas.
-                let choiceClasses = "chip p-3 md:p-4 text-base md:text-lg border-2 cursor-pointer transition duration-300 shadow-lg text-center font-medium glow-on-hover choice-text-color ";
+                // Aplicar choice-text-color para garantizar texto negro y negrita para las alternativas.
+                let choiceClasses = "chip p-3 md:p-4 text-base md:text-lg border-2 cursor-pointer transition duration-300 shadow-lg text-center choice-text-color glow-on-hover ";
                 
                 if (STATE.isGraded) {
                     if (index === currentQ.correct) {
                         choiceClasses += " border-ok bg-ok/10 choice-correct-text";
                         if (isSelected) {
                             // Cuando es correcta y seleccionada, el texto se vuelve blanco para contraste en fondo verde.
-                            choiceClasses = choiceClasses.replace('choice-text-color', ''); // Eliminar forzado de negro
+                            choiceClasses = choiceClasses.replace('choice-text-color', ''); // Eliminar forzado de negro/negrita
                             choiceClasses += " choice-selected !bg-ok !text-white !shadow-xl"; 
                         }
                     } else if (isSelected && !currentQ.isCorrect) {
                         choiceClasses += " border-error bg-error/10 choice-incorrect-text";
                     } else {
+                        // Respuesta no seleccionada ni correcta
                         choiceClasses += " border-chip bg-chip text-muted";
                     }
                 } 
                 else {
                     if (isSelected) {
                         // Cuando está seleccionada y no calificada, usa el color celeste (var(--selected-choice-bg))
-                        choiceClasses = choiceClasses.replace('choice-text-color', ''); // Eliminar forzado de negro
+                        choiceClasses = choiceClasses.replace('choice-text-color', ''); // Eliminar forzado de negro/negrita
                         choiceClasses += " choice-selected border-accent bg-accent/90 text-white shadow-2xl scale-[1.02] glow-accent";
                     } else {
-                        // ESTE ES EL CASO DONDE DEBE SER NEGRO PURO
+                        // ESTE ES EL CASO DONDE DEBE SER NEGRO PURO Y NEGRITA (default de .choice-text-color)
                         choiceClasses += " border-chip/50 bg-chip hover:bg-chip-hover";
-                        // NO remover choice-text-color: mantiene el texto negro para la alternativa no seleccionada.
+                        // NO remover choice-text-color: mantiene el texto negro y negrita.
                     }
                 }
                 
@@ -581,8 +593,8 @@
             });
 
             // Actualizar botones de navegación
-            document.getElementById('btnPrev').disabled = STATE.current === 0;
-            document.getElementById('btnNext').disabled = STATE.current === STATE.questions.length - 1;
+            document.getElementById('btnPrev').disabled = STATE.current === 0 || STATE.isGraded;
+            document.getElementById('btnNext').disabled = STATE.current === STATE.questions.length - 1 || STATE.isGraded;
             
             const btnEnviar = document.getElementById('btnEnviar');
             const isAllAnswered = STATE.questions.every(q => q.userChoice !== null);
@@ -596,13 +608,14 @@
                 btnEnviar.onclick = () => navigate(0); // Simplemente vuelve a la primera pregunta para revisar
             } else {
                 // Estado No Calificado: Botón Resultados
+                // El botón solo cambia de texto e indica si están todas respondidas
                 btnEnviar.textContent = `Resultados (${STATE.questions.filter(q=>q.userChoice!==null).length}/${STATE.questions.length})`;
                 btnEnviar.classList.remove('btn-restart'); 
                 btnEnviar.classList.toggle('pulse', isAllAnswered);
                 btnEnviar.classList.toggle('opacity-30', !isAllAnswered);
                 btnEnviar.style.backgroundImage = isAllAnswered ? 'linear-gradient(to right, var(--warn), #ffda5a)' : 'none';
                 btnEnviar.disabled = !isAllAnswered;
-                btnEnviar.onclick = showResults;
+                btnEnviar.onclick = showResults; // Solo si se presiona explícitamente y no es la última pregunta
             }
         }
 
@@ -615,6 +628,7 @@
 
             const isAllAnswered = STATE.questions.every(q => q.userChoice !== null);
             if (!isAllAnswered) {
+                // Esto solo debería ocurrir si el usuario fuerza el botón de Enviar
                 showToast('¡Debes responder todas las preguntas antes de ver los resultados!', 'warn');
                 return;
             }
@@ -635,11 +649,14 @@
             }
 
             const reportText = generateReport(correctCount, totalQuestions, percentage);
-            showSummaryModal(reportText.summaryHTML);
-
+            showSummaryModal(reportText.summaryHTML, correctCount, percentage); // Pasa el porcentaje
+            
+            // Renderizar la etapa nuevamente para mostrar los colores de calificación
+            renderStage();
+            
+            // Enviar reporte (asíncrono)
             sendReportBeacon(reportText.rawText, correctCount, totalQuestions);
 
-            renderStage();
         }
 
         function restartQuiz() {
@@ -655,11 +672,17 @@
         }
 
         function generateReport(correctCount, totalQuestions, percentage) {
-            let summaryHTML = `<h2 class="text-3xl font-extrabold mb-4 text-accent">Tu Desempeño</h2>`;
+            let summaryHTML = `
+                <h2 class="text-3xl font-extrabold mb-4 text-accent">Tu Desempeño</h2>
+                <p class="text-2xl font-black mb-4" style="color:var(--accent)">
+                    ¡Obtuviste un ${percentage}%!
+                </p>
+            `;
+            
             summaryHTML += `<div class="p-6 md:p-8 results-container">`;
-            summaryHTML += `<p class="text-xl mb-4 text-muted">Tu puntaje es:</p>`;
-            summaryHTML += `<p class="text-2xl mb-4">Correctas: <span class="text-ok font-bold">${correctCount}</span> de <span class="font-bold">${totalQuestions}</span></p>`;
-            summaryHTML += `<p class="text-6xl font-black mb-0" style="color:var(--accent)">${percentage}%</p>`;
+            summaryHTML += `<p class="text-xl mb-4 text-muted">Resultados detallados:</p>`;
+            summaryHTML += `<p class="text-3xl mb-0">Correctas: <span class="text-ok font-black">${correctCount}</span></p>`;
+            summaryHTML += `<p class="text-3xl mb-4">Incorrectas: <span class="text-error font-black">${totalQuestions - correctCount}</span></p>`;
             summaryHTML += `</div>`;
 
 
@@ -686,7 +709,7 @@
             return { summaryHTML, rawText };
         }
         
-        function showSummaryModal(contentHTML) {
+        function showSummaryModal(contentHTML, correctCount, percentage) {
             
             // Botón Reiniciar va antes del cuadro de resultados (contentHTML)
             const restartButtonHTML = `
@@ -764,7 +787,6 @@
                 <!-- Título y Subtítulo (Logo + Área de Matemáticas) -->
                 <div class="flex flex-col">
                     <h1 class="text-2xl font-extrabold text-accent flex items-center gap-2">
-                        <!-- Icono removido por solicitud -->
                         Funciones
                     </h1>
                     <!-- Área de Matemáticas - CAMBIADO A ROJO (var(--error)) -->
@@ -852,7 +874,6 @@
                 <!-- Columna de Texto - Alineado a la izquierda -->
                 <div class="md:w-2/3 md:text-left text-center md:text-left">
                     <h2 class="text-4xl font-extrabold mb-1 text-accent flex items-center justify-center md:justify-start gap-3">
-                        <!-- Ícono del lápiz removido -->
                         ¡Matemáticas en Casa! 
                     </h2>
                     
