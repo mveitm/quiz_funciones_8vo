@@ -9,18 +9,18 @@
     <!-- Carga de Tone.js para efectos de sonido (minimalista) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
-        /* Definición de variables CSS para el tema oscuro */
+        /* Definición de variables CSS para el tema CLARO */
         :root{ 
-            --bg:#070b14; /* Fondo más profundo, casi negro */
-            --panel:#101525; /* Panel más definido */
-            --muted:#adb9d4; 
-            --text:#f2f5ff; 
-            --accent:#4ea1ff; /* Azul estándar */
-            --warn:#ffc107; /* Amarillo para CTA */
-            --error:#ff4d6b; 
-            --ok:#4ce08e; 
-            --chip:#1b2544; 
-            --chip-hover:#25335d;
+            --bg:#f8f9fc;    /* Fondo muy claro, casi blanco */
+            --panel:#ffffff; /* Panel blanco puro */
+            --muted:#6c757d; 
+            --text:#212529;  /* Texto oscuro */
+            --accent:#007bff; /* Azul brillante (el nuevo color de acento) */
+            --warn:#ffc107;  /* Amarillo para CTA */
+            --error:#dc3545; 
+            --ok:#28a745; 
+            --chip:#e9ecef; /* Gris claro para chips */
+            --chip-hover:#dee2e6;
         }
         
         body { 
@@ -30,8 +30,8 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            /* IDEA 1: Fondo con granularidad sutil para sofisticación */
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            /* Fondo con granularidad sutil para sofisticación */
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' fill='%23f8f9fc' filter='url(%23noiseFilter)' opacity='0.2'/%3E%3C/svg%3E");
         }
         
         /* Estilos base */
@@ -44,7 +44,7 @@
         
         .choice-selected { 
             background-color: var(--accent) !important; 
-            color: var(--bg) !important;
+            color: var(--panel) !important; /* Texto blanco en fondo azul */
             font-weight: 600;
         }
         
@@ -56,18 +56,18 @@
 
         .action-button {
             transition: all 0.3s ease;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             font-weight: 700;
             border-radius: 0.75rem; /* rounded-xl */
         }
         
-        /* IDEA 3: Efectos de Brillo (Glow) */
+        /* Efectos de Brillo (Glow) */
         .glow-on-hover:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 0 15px var(--accent), 0 6px 15px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 15px rgba(0, 123, 255, 0.5), 0 6px 15px rgba(0, 0, 0, 0.15); /* Glow azul */
         }
         .glow-accent {
-            box-shadow: 0 0 8px var(--accent), inset 0 0 5px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 0 8px var(--accent), inset 0 0 5px rgba(0, 0, 0, 0.05);
         }
 
         /* Barra de navegación fija y flotante (Sticky Footer) */
@@ -77,10 +77,10 @@
             left: 0;
             right: 0;
             background: var(--panel);
-            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5); /* Sombra hacia arriba */
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1); /* Sombra hacia arriba más sutil */
             z-index: 20;
             padding: 1rem 0;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
         }
         
         /* Ajustar el padding del main para que el contenido no quede oculto bajo el footer */
@@ -100,23 +100,36 @@
         /* Botón de Resultados con gradiente fuerte y glow */
         #btnEnviar {
             pointer-events: auto;
-            background-image: linear-gradient(to right, var(--warn), #ffcc00);
-            color: var(--bg);
+            background-image: linear-gradient(to right, var(--warn), #ffda5a);
+            color: var(--text);
+            font-weight: 900;
         }
         #btnEnviar:hover:not(:disabled) {
             transform: translateY(-2px);
             /* Sombra Glow de advertencia */
-            box-shadow: 0 0 15px var(--warn), 0 6px 15px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 15px var(--warn), 0 6px 15px rgba(0, 0, 0, 0.2);
         }
 
         /* Estilo para el botón Reiniciar Quiz (visible y contrastante) */
         .btn-restart {
             background-color: var(--error) !important;
-            color: var(--bg) !important;
-            box-shadow: 0 0 10px var(--error), 0 4px 10px rgba(0, 0, 0, 0.4);
+            color: var(--panel) !important; /* Texto blanco en rojo */
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.5), 0 4px 10px rgba(0, 0, 0, 0.2);
         }
         .btn-restart:hover {
             background-color: var(--error) !important;
+        }
+
+        /* Estilo para el Modal de Inicio - Siempre visible al cargar */
+        .modal-start {
+             z-index: 100; /* Asegura que esté por encima de todo */
+        }
+
+        /* Estilo para la imagen del avatar */
+        .avatar-image {
+            max-height: 150px;
+            max-width: 150px;
+            object-fit: contain;
         }
 
     </style>
@@ -134,10 +147,11 @@
             isGraded: false, 
             correctCount: 0, 
             TOTAL_QUESTIONS: 12, 
+            isAppReady: false, // Nuevo estado para controlar si el usuario ha comenzado
         };
 
         // -----------------------------------------------------------
-        // 0. CONFIGURACIÓN DE AUDIO, TOAST Y UTILS (Actualización de Sonido)
+        // 0. CONFIGURACIÓN DE AUDIO, TOAST Y UTILS 
         // -----------------------------------------------------------
 
         let clickSynth, navSynth, successSynth, failSynth;
@@ -153,7 +167,7 @@
         async function playSound(type) {
             await Tone.start(); 
             switch (type) {
-                case 'click': clickSynth.triggerAttackRelease("C5", "16n"); break; // Usa PluckSynth
+                case 'click': clickSynth.triggerAttackRelease("C5", "16n"); break; 
                 case 'nav': navSynth.triggerAttackRelease("C4", "16n"); break;
                 case 'success': successSynth.triggerAttackRelease(["C5", "E5", "G5"], "4n"); break;
                 case 'fail': failSynth.triggerAttackRelease(["C3", "C#3", "D3"], "8n"); break;
@@ -167,12 +181,13 @@
             const toast = document.getElementById('toast');
             toast.className = 'bg-panel text-text'; 
             
+            // Adaptar clases de color a tema claro
             switch (type) {
-                case 'accent': toast.classList.add('toast-accent'); break;
-                case 'warn': toast.classList.add('toast-warn'); break;
-                case 'error': toast.classList.add('toast-error'); break;
-                case 'ok': toast.classList.add('toast-ok'); break;
-                default: toast.classList.add('bg-panel'); break;
+                case 'accent': toast.classList.add('bg-blue-500', 'text-white'); break;
+                case 'warn': toast.classList.add('bg-yellow-500', 'text-gray-800'); break;
+                case 'error': toast.classList.add('bg-red-500', 'text-white'); break;
+                case 'ok': toast.classList.add('bg-green-500', 'text-white'); break;
+                default: toast.classList.add('bg-white', 'text-gray-800'); break;
             }
             
             toast.textContent = message;
@@ -193,6 +208,7 @@
         };
 
         function formatMath(text) {
+            // Asegúrate de que las expresiones matemáticas se vean bien en el tema claro
             return text.replace(/\$(.*?)\$/g, (match, p1) => `<span class="math-expr">${p1.replace(/\s/g, '&nbsp;')}</span>`);
         }
         
@@ -253,7 +269,7 @@
                     question.choices = shuffleArray(["$(0, 1)$", "$(1, 0)$", "$(0, 0)$ (Origen)"].filter(c => c !== question.correctAnswer).slice(0, 2).concat(question.correctAnswer));
                     break;
                 case 6:
-                    question.text = `Si la función $f(x) = -4x + 6$ es afín, ¿por qué punto **no** pasa su gráfica?`;
+                    question.text = `Si la función $f(x) = -4x + 6$ es afín, ¿por qué punto no pasa su gráfica?`;
                     question.correctAnswer = "$(0, 0)$";
                     question.choices = shuffleArray(["$(1, 2)$", "$(0, 6)$", "$(0, 0)$"].filter(c => c !== question.correctAnswer).slice(0, 2).concat(question.correctAnswer));
                     break;
@@ -333,7 +349,7 @@
         }
 
         // -----------------------------------------------------------
-        // 1. LÓGICA DE ESTADO Y FLUJO (Mantenido)
+        // 1. LÓGICA DE ESTADO Y FLUJO 
         // -----------------------------------------------------------
 
         function initializeState() {
@@ -341,10 +357,11 @@
             STATE.current = 0;
             STATE.isGraded = false;
             STATE.correctCount = 0;
+            // STATE.isAppReady se mantiene en false al inicio
         }
 
         function selectChoice(choiceIndex) {
-            if (STATE.isGraded) return; 
+            if (STATE.isGraded || !STATE.isAppReady) return; 
             const question = STATE.questions[STATE.current];
             if (question.userChoice !== choiceIndex) {
                  playSound('click'); 
@@ -360,6 +377,7 @@
         }
 
         function navigate(offset) {
+            if (!STATE.isAppReady) return;
             const newIndex = STATE.current + offset;
 
             if (newIndex >= 0 && newIndex < STATE.questions.length) {
@@ -383,6 +401,16 @@
             STATE.correctCount = correctCount; 
             return correctCount;
         }
+        
+        // Nueva función para iniciar la aplicación después del modal
+        function startQuizApp() {
+            STATE.isAppReady = true;
+            document.getElementById('welcome-modal').classList.add('hidden');
+            document.getElementById('main-content-wrapper').classList.remove('opacity-0', 'pointer-events-none');
+            showToast(`¡Empecemos! Pregunta ${STATE.current + 1} de ${STATE.TOTAL_QUESTIONS}.`, 'accent');
+            renderStage(); // Primer renderizado completo
+        }
+
 
         // -----------------------------------------------------------
         // 2. RENDERIZADO DEL UI
@@ -398,8 +426,14 @@
 
 
         function renderStage() {
+            if (!STATE.isAppReady) {
+                document.getElementById('stage').innerHTML = '<p class="text-center text-muted">Presiona "Comenzar" para cargar el quiz.</p>';
+                document.getElementById('scoreBadge').textContent = "Quiz Pendiente";
+                return;
+            }
+
             if (STATE.questions.length === 0) {
-                document.getElementById('stage').innerHTML = '<p class="text-center text-muted">Cargando preguntas...</p>';
+                document.getElementById('stage').innerHTML = '<p class="text-center text-muted">Generando preguntas...</p>';
                 return;
             }
 
@@ -409,7 +443,7 @@
             // Renderiza el número de pregunta con estilo de chip
             const questionNumberHTML = `
                 <div class="flex items-start gap-4 mb-6 text-xl md:text-2xl font-bold text-text">
-                    <span class="bg-chip/50 text-accent px-4 py-1 rounded-full shadow-inner shadow-black/30 text-lg md:text-xl shrink-0">${STATE.current + 1}.</span> 
+                    <span class="bg-chip/50 text-accent px-4 py-1 rounded-full shadow-inner shadow-black/10 text-lg md:text-xl shrink-0">${STATE.current + 1}.</span> 
                     <span class="flex-1">${formatMath(currentQ.text)}</span>
                 </div>
             `;
@@ -423,25 +457,26 @@
             currentQ.choices.forEach((choiceText, index) => {
                 const isSelected = currentQ.userChoice === index;
                 
-                let choiceClasses = "chip p-3 md:p-4 text-base md:text-lg border-2 cursor-pointer transition duration-300 shadow-xl text-center font-medium glow-on-hover ";
+                // Adaptar clases de color a tema claro
+                let choiceClasses = "chip p-3 md:p-4 text-base md:text-lg border-2 cursor-pointer transition duration-300 shadow-lg text-center font-medium glow-on-hover ";
                 
                 if (STATE.isGraded) {
                     if (index === currentQ.correct) {
                         choiceClasses += " border-ok bg-ok/10 text-ok glow-accent";
                         if (isSelected) {
-                            choiceClasses += " choice-selected !bg-ok/80 !text-bg !shadow-lg";
+                            choiceClasses += " choice-selected !bg-ok !text-white !shadow-xl";
                         }
                     } else if (isSelected && !currentQ.isCorrect) {
                         choiceClasses += " border-error bg-error/10 text-error";
                     } else {
-                        choiceClasses += " border-chip bg-chip/50 text-muted";
+                        choiceClasses += " border-chip bg-chip text-muted";
                     }
                 } 
                 else {
                     if (isSelected) {
-                        choiceClasses += " choice-selected border-accent bg-accent/90 text-bg shadow-2xl scale-[1.02] glow-accent";
+                        choiceClasses += " choice-selected border-accent bg-accent/90 text-white shadow-2xl scale-[1.02] glow-accent";
                     } else {
-                        choiceClasses += " border-chip/50 bg-chip hover:bg-chip-hover";
+                        choiceClasses += " border-chip/50 bg-chip hover:bg-chip-hover text-text";
                     }
                 }
 
@@ -464,25 +499,33 @@
             const mapContainer = document.getElementById('mapa');
             mapContainer.innerHTML = '';
             
+            if (!STATE.isAppReady) {
+                 // No renderizar mapa ni botones si la app no ha comenzado
+                 document.getElementById('footer-controls').classList.add('hidden');
+                 return;
+            }
+            document.getElementById('footer-controls').classList.remove('hidden');
+
             // Renderizar Mapa de Chips
             STATE.questions.forEach((q, index) => {
                 const chip = document.createElement('div');
-                let chipClasses = 'chip text-xs px-3 py-1 cursor-pointer font-bold transition duration-150 border border-white/10 shadow-inner ';
+                // Adaptar clases de color a tema claro
+                let chipClasses = 'chip text-xs px-3 py-1 cursor-pointer font-bold transition duration-150 border border-gray-300 shadow-inner ';
                 
                 if (q.userChoice !== null && !STATE.isGraded) {
-                    chipClasses += 'bg-chip-hover text-text hover:bg-accent/50';
+                    chipClasses += 'bg-accent/20 text-accent hover:bg-accent/30';
                 } else if (q.userChoice === null) {
                     chipClasses += 'bg-chip text-muted hover:bg-chip-hover';
                 }
 
                 if (STATE.isGraded) {
-                    if (q.isCorrect) chipClasses = chipClasses.replace(/bg-.*/, 'bg-ok/70 text-bg shadow-lg');
-                    else if (q.userChoice !== null) chipClasses = chipClasses.replace(/bg-.*/, 'bg-error/70 text-bg shadow-lg');
+                    if (q.isCorrect) chipClasses = chipClasses.replace(/bg-.*/, 'bg-ok text-white shadow-lg');
+                    else if (q.userChoice !== null) chipClasses = chipClasses.replace(/bg-.*/, 'bg-error text-white shadow-lg');
                 }
                 
                 // Pregunta Actual (Usa ring y sombra más dramática)
                 if (index === STATE.current) {
-                    chipClasses = 'chip text-xs px-3 py-1 cursor-pointer font-bold transition duration-150 bg-accent text-bg shadow-xl scale-110 ring-2 ring-warn/80 ring-offset-2 ring-offset-panel';
+                    chipClasses = 'chip text-xs px-3 py-1 cursor-pointer font-bold transition duration-150 bg-accent text-white shadow-xl scale-110 ring-2 ring-warn/80 ring-offset-2 ring-offset-panel';
                 }
 
 
@@ -513,18 +556,18 @@
                 btnEnviar.classList.remove('btn-restart'); // Asegura que no tenga el estilo de Reinicio
                 btnEnviar.classList.toggle('pulse', isAllAnswered);
                 btnEnviar.classList.toggle('opacity-30', !isAllAnswered);
-                btnEnviar.style.backgroundImage = isAllAnswered ? 'linear-gradient(to right, var(--warn), #ffcc00)' : 'none';
+                btnEnviar.style.backgroundImage = isAllAnswered ? 'linear-gradient(to right, var(--warn), #ffda5a)' : 'none';
                 btnEnviar.disabled = !isAllAnswered;
                 btnEnviar.onclick = showResults;
             }
         }
 
         // -----------------------------------------------------------
-        // 3. FUNCIONALIDAD PRINCIPAL Y REPORTE (Mantenido)
+        // 3. FUNCIONALIDAD PRINCIPAL Y REPORTE
         // -----------------------------------------------------------
 
         function showResults() {
-            if (STATE.isGraded) return;
+            if (STATE.isGraded || !STATE.isAppReady) return;
 
             const isAllAnswered = STATE.questions.every(q => q.userChoice !== null);
             if (!isAllAnswered) {
@@ -556,13 +599,12 @@
         }
 
         function restartQuiz() {
-            // Se puede llamar directamente desde el botón sin modal para mayor fluidez, 
-            // ya que la acción del botón es clara cuando el quiz está calificado.
             performRestart();
         }
         
         function performRestart() {
             initializeState();
+            STATE.isAppReady = true; // Sigue lista
             renderStage();
             hideModal();
             showToast('Quiz Reiniciado. Nuevas preguntas generadas.', 'accent');
@@ -599,12 +641,12 @@
         
         function showSummaryModal(contentHTML) {
             document.getElementById('modal-content').innerHTML = contentHTML + 
-                '<p class="mt-8 text-center"><button onclick="hideModal()" class="action-button bg-accent text-bg py-3 px-6 hover:bg-accent/80 glow-on-hover">Revisar Respuestas</button></p>';
-            document.getElementById('modal').classList.remove('hidden');
+                '<p class="mt-8 text-center"><button onclick="hideModal()" class="action-button bg-accent text-white py-3 px-6 hover:bg-accent/80 glow-on-hover">Revisar Respuestas</button></p>';
+            document.getElementById('result-modal').classList.remove('hidden');
         }
         
         function hideModal() {
-            document.getElementById('modal').classList.add('hidden');
+            document.getElementById('result-modal').classList.add('hidden');
         }
 
         function sendReportBeacon(report, correctas, total) {
@@ -634,8 +676,18 @@
             document.getElementById('btnPrev').onclick = () => navigate(-1);
             document.getElementById('btnNext').onclick = () => navigate(1);
             
-            renderStage();
-            showToast(`Quiz listo con 3 opciones por pregunta.`, 'accent');
+            // Adjuntar evento al botón de inicio del quiz
+            document.getElementById('btnStartQuiz').onclick = startQuizApp;
+
+            // Mostrar el modal de bienvenida al inicio
+            document.getElementById('welcome-modal').classList.remove('hidden');
+            
+            // Ocultar temporalmente el contenido principal y el footer hasta que el usuario inicie
+            document.getElementById('main-content-wrapper').classList.add('opacity-0', 'pointer-events-none');
+            document.getElementById('footer-controls').classList.add('hidden');
+
+            renderScoreBadge(); // Renderiza el badge inicial
+            renderStage(); // Primer renderizado de placeholder
         }
 
         document.addEventListener('DOMContentLoaded', initApp);
@@ -643,77 +695,119 @@
     </script>
 </head>
 <body class="flex flex-col">
-    <!-- Encabezado Fijo con Diseño Elevado -->
-    <header class="bg-panel shadow-2xl sticky top-0 z-10 border-b border-white/5">
-        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-            
-            <!-- Título y Subtítulo (Profesor Mauricio) -->
-            <div class="flex flex-col">
-                <h1 class="text-2xl font-extrabold text-accent flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-warn">
-                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-                        <path d="m15 5 4 4"/>
-                    </svg>
-                    Funciones
-                </h1>
-                <!-- Nuevo: Nombre del Profesor en amarillo suave -->
-                <p class="text-xs font-semibold mt-[-2px]" style="color:var(--warn); opacity: 0.8;">Profesor Mauricio</p>
+    <!-- Contenedor principal (Se oculta al inicio) -->
+    <div id="main-content-wrapper" class="flex flex-col flex-grow transition-opacity duration-500">
+        
+        <!-- Encabezado Fijo con Diseño Elevado -->
+        <header class="bg-panel shadow-lg sticky top-0 z-10 border-b border-gray-100">
+            <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+                
+                <!-- Título y Subtítulo (Profesor Mauricio) -->
+                <div class="flex flex-col">
+                    <h1 class="text-2xl font-extrabold text-accent flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-warn">
+                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                            <path d="m15 5 4 4"/>
+                        </svg>
+                        Funciones
+                    </h1>
+                    <p class="text-xs font-semibold mt-[-2px]" style="color:var(--warn); opacity: 0.8;">Profesor Mauricio</p>
+                </div>
+                
+                <!-- Badge de Puntaje Dinámico con mejor estilo -->
+                <div id="scoreBadge" class="text-sm font-semibold text-text bg-chip px-4 py-1.5 rounded-full shadow-md border border-gray-200">
+                    Quiz Pendiente
+                </div>
             </div>
-            
-            <!-- Badge de Puntaje Dinámico con mejor estilo -->
-            <div id="scoreBadge" class="text-sm font-semibold text-warn bg-chip px-4 py-1.5 rounded-full shadow-lg border border-warn/30">
-                Puntaje: --/12
-            </div>
-        </div>
-    </header>
+        </header>
 
-    <!-- Contenido Principal (flex-grow para ocupar el espacio restante) -->
-    <main class="flex-grow p-4 md:p-8">
-        <div class="max-w-4xl mx-auto bg-panel p-6 md:p-10 rounded-2xl shadow-2xl border-t-4 border-accent/50">
-            
-            <!-- Contenedor de la Pregunta y Alternativas -->
-            <div id="stage" class="min-h-[250px] flex flex-col justify-center gap-4">
-                <p class="text-center text-muted">Cargando...</p>
-            </div>
-        </div>
-    </main>
-    
-    <!-- Sticky Footer Fijo para la navegación tipo App Móvil -->
-    <footer class="sticky-footer">
-        <div class="max-w-4xl mx-auto px-4">
-            <!-- Mapa de Navegación (Chips) -->
-            <div id="mapa" class="flex flex-wrap justify-center gap-3 mb-4">
-                <!-- Chips de navegación -->
-            </div>
-            
-            <!-- Botones de Control -->
-            <div class="flex justify-between items-center gap-4">
-                <button id="btnPrev" class="action-button bg-chip text-text p-3 w-1/3 hover:bg-chip-hover disabled:opacity-30 flex items-center justify-center gap-1 glow-on-hover" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                    Anterior
-                </button>
+        <!-- Contenido Principal (flex-grow para ocupar el espacio restante) -->
+        <main class="flex-grow p-4 md:p-8">
+            <div class="max-w-4xl mx-auto bg-panel p-6 md:p-10 rounded-2xl shadow-xl border-t-4 border-accent/50">
                 
-                <!-- Botón de Resultados/Reiniciar (se adapta en JS) -->
-                <button id="btnEnviar" class="action-button text-bg p-3 w-1/3 font-extrabold disabled:opacity-30">
-                    Resultados
-                </button>
-                
-                <button id="btnNext" class="action-button bg-chip text-text p-3 w-1/3 hover:bg-chip-hover disabled:opacity-30 flex items-center justify-center gap-1 glow-on-hover">
-                    Siguiente 
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                </button>
+                <!-- Contenedor de la Pregunta y Alternativas -->
+                <div id="stage" class="min-h-[250px] flex flex-col justify-center gap-4">
+                    <p class="text-center text-muted">Presiona "Comenzar" para cargar el quiz.</p>
+                </div>
             </div>
-        </div>
-    </footer>
+        </main>
+        
+        <!-- Sticky Footer Fijo para la navegación tipo App Móvil -->
+        <footer class="sticky-footer">
+            <div class="max-w-4xl mx-auto px-4">
+                <!-- Mapa de Navegación (Chips) -->
+                <div id="mapa" class="flex flex-wrap justify-center gap-3 mb-4">
+                    <!-- Chips de navegación -->
+                </div>
+                
+                <!-- Botones de Control -->
+                <div id="footer-controls" class="flex justify-between items-center gap-4">
+                    <!-- Botones adaptados al tema claro -->
+                    <button id="btnPrev" class="action-button bg-chip text-text p-3 w-1/3 hover:bg-chip-hover disabled:opacity-30 flex items-center justify-center gap-1 glow-on-hover" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                        Anterior
+                    </button>
+                    
+                    <!-- Botón de Resultados/Reiniciar (se adapta en JS) -->
+                    <button id="btnEnviar" class="action-button text-bg p-3 w-1/3 font-extrabold disabled:opacity-30">
+                        Resultados
+                    </button>
+                    
+                    <button id="btnNext" class="action-button bg-chip text-text p-3 w-1/3 hover:bg-chip-hover disabled:opacity-30 flex items-center justify-center gap-1 glow-on-hover">
+                        Siguiente 
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                    </button>
+                </div>
+            </div>
+        </footer>
+    </div> <!-- Fin de main-content-wrapper -->
 
     <!-- Toast (Notificación) -->
-    <div id="toast" role="alert"></div>
+    <div id="toast" role="alert" class="fixed bottom-20 left-1/2 -translate-x-1/2 p-3 rounded-xl shadow-lg transition duration-300 opacity-0 z-50 text-center text-sm" style="transition: all 0.5s ease-out; transform: translate(-50%, 0); max-width: 90vw;"></div>
 
-    <!-- Modal de Resultados (usado también para confirmaciones) -->
-    <div id="modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center hidden p-4" onclick="hideModal()">
+    <!-- Modal de BIENVENIDA (Aparece al inicio) -->
+    <div id="welcome-modal" class="fixed inset-0 bg-black/50 modal-start flex items-center justify-center p-4">
+        <div class="bg-panel p-8 md:p-10 rounded-2xl shadow-2xl max-w-2xl w-full text-center border-t-4 border-warn" onclick="event.stopPropagation()">
+            
+            <!-- Contenedor Flex para la imagen y el texto -->
+            <div class="flex flex-col md:flex-row items-center gap-6">
+                
+                <!-- Columna de Imagen (Mascota - Logo del Colegio) -->
+                <div class="md:w-1/3 flex justify-center shrink-0">
+                    <img 
+                        src="https://colegiocristianolebeaujour.cl/static/media/colegio-icon.0dca672a2e0028884bbe.png" 
+                        alt="Logo del Colegio Cristiano Le Beau Jour" 
+                        class="avatar-image rounded-xl shadow-xl p-2 bg-warn/10" 
+                        onerror="this.onerror=null; this.src='https://placehold.co/150x150/ffc107/070b14?text=Logo';" 
+                    />
+                </div>
+                
+                <!-- Columna de Texto -->
+                <div class="md:w-2/3 md:text-left text-center">
+                    <h2 class="text-4xl font-extrabold mb-4 text-accent flex items-center justify-center md:justify-start gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-warn"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                        ¡Hola! Prepárate.
+                    </h2>
+                    <p class="text-xl mb-4 text-text">
+                        Bienvenido a tu Quiz Dinámico de Funciones (Lineales y Afines), diseñado por el Colegio Le Beau Jour para que ¡¡estudies en casa!!.
+                    </p>
+                    <p class="text-lg text-muted mb-6 italic">
+                        Te recomiendo tener a mano tu cuaderno o apuntes de Funciones. Así podrás resolver tus dudas y reforzar los conceptos al instante!
+                    </p>
+                </div>
+            </div>
+            
+            <button id="btnStartQuiz" class="action-button bg-warn text-bg py-3 px-8 text-xl hover:bg-warn/80 glow-on-hover font-black mt-6 w-full md:w-auto">
+                ¡Comenzar Quiz!
+            </button>
+        </div>
+    </div>
+    
+    <!-- Modal de Resultados (usado para la calificación) -->
+    <div id="result-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center hidden p-4" onclick="hideModal()">
         <div class="bg-panel p-8 md:p-10 rounded-2xl shadow-2xl max-w-lg w-full text-center border-t-4 border-accent" onclick="event.stopPropagation()">
             <div id="modal-content">
-                <!-- Contenido dinámico -->
+                <!-- Contenido dinámico de resultados -->
             </div>
         </div>
     </div>
