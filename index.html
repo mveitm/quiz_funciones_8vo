@@ -21,10 +21,9 @@
             --ok:#28a745; 
             --chip:#e9ecef; /* Gris claro para chips */
             --chip-hover:#dee2e6;
-            /* CAMBIO 1: Texto de alternativas ahora es negro puro y en negrita */
             --choice-text: #000000; 
-            --choice-font-weight: 700; /* Negrita */
-            --selected-choice-bg: #60a5fa; /* Nuevo Celeste (Blue 400 de Tailwind) para la selección */
+            --choice-font-weight: 700; 
+            --selected-choice-bg: #60a5fa; 
         }
         
         body { 
@@ -34,7 +33,6 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            /* Fondo con granularidad sutil para sofisticación */
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' fill='%23f0f1f4' filter='url(%23noiseFilter)' opacity='0.2'/%3E%3C/svg%3E");
         }
         
@@ -49,17 +47,15 @@
         /* Modificado para usar el nuevo color celeste */
         .choice-selected { 
             background-color: var(--selected-choice-bg) !important; 
-            color: var(--panel) !important; /* Texto blanco en fondo celeste por contraste */
+            color: var(--panel) !important; 
             font-weight: var(--choice-font-weight) !important;
         }
 
-        /* CAMBIO 1: Clase general para el color y peso de texto de las alternativas no seleccionadas */
         .choice-text-color {
-            color: var(--choice-text) !important; /* Forzar negro */
-            font-weight: var(--choice-font-weight) !important; /* Forzar negrita */
+            color: var(--choice-text) !important; 
+            font-weight: var(--choice-font-weight) !important; 
         }
 
-        /* Si es correcta o incorrecta, permitimos que las clases de color de estado (ok/error) tomen el control */
         .choice-correct-text { color: var(--ok) !important; font-weight: var(--choice-font-weight) !important; }
         .choice-incorrect-text { color: var(--error) !important; font-weight: var(--choice-font-weight) !important; }
 
@@ -74,13 +70,13 @@
             transition: all 0.3s ease;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             font-weight: 700;
-            border-radius: 0.75rem; /* rounded-xl */
+            border-radius: 0.75rem; 
         }
         
         /* Efectos de Brillo (Glow) */
         .glow-on-hover:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 0 15px rgba(30, 64, 175, 0.5), 0 6px 15px rgba(0, 0, 0, 0.15); /* Glow azul oscuro */
+            box-shadow: 0 0 15px rgba(30, 64, 175, 0.5), 0 6px 15px rgba(0, 0, 0, 0.15); 
         }
         .glow-accent {
             box-shadow: 0 0 8px var(--accent), inset 0 0 5px rgba(0, 0, 0, 0.05);
@@ -93,7 +89,7 @@
             left: 0;
             right: 0;
             background: var(--panel);
-            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1); /* Sombra hacia arriba más sutil */
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1); 
             z-index: 20;
             padding: 1rem 0;
             border-top: 1px solid rgba(0, 0, 0, 0.05);
@@ -101,7 +97,7 @@
         
         /* Ajustar el padding del main para que el contenido no quede oculto bajo el footer */
         main {
-            padding-bottom: 7rem; /* Espacio para el sticky footer */
+            padding-bottom: 7rem; 
         }
 
         /* Estilo para notación matemática simple */
@@ -110,9 +106,8 @@
             background-color: var(--chip);
             padding: 0 4px;
             border-radius: 4px;
-            /* Color azul oscuro para expresiones matemáticas */
             color: var(--accent); 
-            font-weight: 700; /* Asegurar que las expresiones math también estén en negrita */
+            font-weight: 700; 
         }
         
         /* Botón de Resultados con gradiente fuerte y glow */
@@ -124,14 +119,13 @@
         }
         #btnEnviar:hover:not(:disabled) {
             transform: translateY(-2px);
-            /* Sombra Glow de advertencia */
             box-shadow: 0 0 15px var(--warn), 0 6px 15px rgba(0, 0, 0, 0.2);
         }
 
         /* Estilo para el botón Reiniciar Quiz (visible y contrastante) - Ahora fuera del modal */
         .btn-restart {
             background-color: var(--error) !important;
-            color: var(--panel) !important; /* Texto blanco en rojo */
+            color: var(--panel) !important; 
             box-shadow: 0 0 10px rgba(220, 53, 69, 0.5), 0 4px 10px rgba(0, 0, 0, 0.2);
         }
         .btn-restart:hover {
@@ -140,7 +134,7 @@
 
         /* Estilo para el Modal de Inicio - Siempre visible al cargar */
         .modal-start {
-             z-index: 100; /* Asegura que esté por encima de todo */
+             z-index: 100; 
         }
 
         /* Estilo para la imagen del avatar */
@@ -161,7 +155,7 @@
 
         /* Estilo específico para el contenido del modal de bienvenida (fondo gris casi blanco) */
         #welcome-modal .modal-content-area {
-            background: var(--bg); /* Fondo gris casi blanco para el contenido del modal */
+            background: var(--bg); 
         }
 
         /* Estilo para el logo en el header */
@@ -229,7 +223,7 @@
             
             // Adaptar clases de color a tema claro
             switch (type) {
-                case 'accent': toast.classList.add('bg-blue-800', 'text-white'); break; /* Usando azul oscuro para toast */
+                case 'accent': toast.classList.add('bg-blue-800', 'text-white'); break; 
                 case 'warn': toast.classList.add('bg-yellow-500', 'text-gray-800'); break;
                 case 'error': toast.classList.add('bg-red-500', 'text-white'); break;
                 case 'ok': toast.classList.add('bg-green-500', 'text-white'); break;
@@ -413,10 +407,6 @@
                  question.userChoice = choiceIndex;
             } 
 
-            // **AJUSTE SOLICITADO**: Al seleccionar la última pregunta,
-            // ya NO llamamos a showResults() automáticamente.
-            // Solo actualizamos el botón 'Resultados' para que resalte.
-            
             // Si el quiz está completo, mostramos un mensaje sutil de que el botón Resultados está listo
             const answeredCount = STATE.questions.filter(q => q.userChoice !== null).length;
             if (answeredCount === STATE.TOTAL_QUESTIONS) {
@@ -434,6 +424,8 @@
             const newIndex = STATE.current + offset;
 
             if (newIndex >= 0 && newIndex < STATE.questions.length) {
+                // CORRECCIÓN: Llamamos a hideModal() explícitamente solo al navegar para cerrar resultados o advertencias.
+                hideModal();
                 playSound('nav');
                 STATE.current = newIndex;
                 renderStage();
@@ -494,8 +486,9 @@
                 return;
             }
             
-            // Ocultar modal de resultados al avanzar de pregunta
-            hideModal(); 
+            // CORRECCIÓN CRÍTICA: Se eliminó la línea 'hideModal()' de aquí.
+            // Si showResults llama a renderStage, esta línea cerraba inmediatamente el modal de resultados.
+            // La función hideModal() ahora solo es llamada explícitamente por navigate() o por el botón de cierre del modal.
 
             if (STATE.questions.length === 0) {
                 document.getElementById('stage').innerHTML = '<p class="text-center text-muted">Generando preguntas...</p>';
@@ -647,7 +640,7 @@
             const answeredCount = STATE.questions.filter(q => q.userChoice !== null).length;
             const isAllAnswered = answeredCount === STATE.questions.length;
             
-            // **AJUSTE SOLICITADO**: Si no están todas respondidas, mostramos un modal de advertencia, no el quiz.
+            // Si no están todas respondidas, mostramos un modal de advertencia
             if (!isAllAnswered) {
                 showWarningModal(answeredCount);
                 return;
@@ -661,8 +654,7 @@
             STATE.isGraded = true;
             STATE.current = 0; 
             
-            // **AJUSTE SOLICITADO**: Quitamos el toast de aquí, ya que el modal lo oculta.
-            // El mensaje de éxito/fracaso se incorpora en el modal de resumen.
+            // Sonido de éxito/fracaso
             if (correctCount >= totalQuestions * 0.75) {
                 playSound('success');
             } else {
@@ -670,17 +662,18 @@
             }
 
             const reportText = generateReport(correctCount, totalQuestions, percentage);
-            showSummaryModal(reportText.summaryHTML, correctCount, percentage); 
+            showSummaryModal(reportText.summaryHTML, correctCount, percentage); // Aquí se muestra el modal
             
             // Renderizar la etapa nuevamente para mostrar los colores de calificación
-            renderStage();
+            // El modal *permanecerá abierto* porque eliminamos la llamada a hideModal() de renderStage
+            renderStage(); 
             
             // Enviar reporte (asíncrono)
             sendReportBeacon(reportText.rawText, correctCount, totalQuestions);
 
         }
 
-        // Nuevo: Muestra un modal cuando faltan preguntas por responder
+        // Muestra un modal cuando faltan preguntas por responder
         function showWarningModal(answeredCount) {
              const remaining = STATE.TOTAL_QUESTIONS - answeredCount;
              const contentHTML = `
