@@ -171,6 +171,24 @@
             background-color: var(--warn);
             color: var(--text);
         }
+        
+        /* Estilo para el texto de porcentaje dentro del modal de resultados */
+        .result-percentage-text {
+            color: var(--panel) !important; /* Blanco */
+            background-color: var(--accent); /* Fondo Azul para el badge/sección */
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+        }
+        
+        /* Estilo específico para el botón "Cerrar y Revisar" */
+        .btn-close-review {
+            background-color: var(--panel) !important; /* Fondo Blanco */
+            color: var(--accent) !important; /* Texto Azul */
+            border: 2px solid var(--accent) !important; /* Borde Azul */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
 
     </style>
     <script>
@@ -252,7 +270,7 @@
             return text.replace(/\$(.*?)\$/g, (match, p1) => `<span class="math-expr">${p1.replace(/\s/g, '&nbsp;')}</span>`);
         }
         
-        // Función para generar preguntas (Mantenido el mismo set de 12 tipos)
+        // Función para generar preguntas (Mantenido el mismo set de 10 tipos base)
         function generateRandomQuestion(type) {
             let question = {};
             let m, n, x, val;
@@ -268,21 +286,36 @@
                     val = m * x + n; 
                     question.text = `Si $f(x) = ${m === 1 ? '' : m}x ${n > 0 ? '+' : ''} ${n}$, ¿Cuál es el valor de $f(${x})$?`;
                     question.correctAnswer = val.toString();
-                    const incorrects1 = new Set([val, m * x - n, m + x + n]);
-                    while (incorrects1.size < 3) {
-                        const distractor = val + randInt(-4, 4);
-                        if (distractor !== val) incorrects1.add(distractor);
+                    
+                    // FIX: Asegurar 1 correcta + 2 distractores únicos
+                    const distractors1 = new Set();
+                    distractors1.add(m * x - n);
+                    distractors1.add(m + x + n);
+                    
+                    while (distractors1.size < 2) {
+                        const distractor = val + randInt(-6, 6);
+                        if (distractor !== val) distractors1.add(distractor);
                     }
-                    question.choices = shuffleArray(Array.from(incorrects1).slice(0, 3).map(v => v.toString()));
+                    
+                    const finalChoices1 = [question.correctAnswer, ...Array.from(distractors1).filter(d => d !== val).slice(0, 2).map(v => v.toString())];
+                    question.choices = shuffleArray(finalChoices1);
                     break;
                 case 2:
                     question.text = `¿Cuál es la pendiente ($m$) de la función $f(x) = ${m}x ${n > 0 ? '+' : ''} ${n}$?`;
                     question.correctAnswer = m.toString();
-                    const incorrects2 = new Set([m, n, -m]);
-                    while (incorrects2.size < 3) {
-                        incorrects2.add(m + randInt(-3, 3));
+                    
+                    // FIX: Asegurar 1 correcta + 2 distractores únicos
+                    const distractors2 = new Set();
+                    distractors2.add(n);
+                    distractors2.add(-m);
+                    
+                    while (distractors2.size < 2) {
+                        const distractor = m + randInt(-3, 3);
+                        if (distractor !== m) distractors2.add(distractor);
                     }
-                    question.choices = shuffleArray(Array.from(incorrects2).slice(0, 3).map(v => v.toString()));
+
+                    const finalChoices2 = [question.correctAnswer, ...Array.from(distractors2).filter(d => d !== m).slice(0, 2).map(v => v.toString())];
+                    question.choices = shuffleArray(finalChoices2);
                     break;
                 case 3:
                     const isLinear = randInt(0, 1);
@@ -298,10 +331,19 @@
                 case 4:
                     question.text = `El punto de corte con el eje Y (intercepto) de $f(x) = ${m}x ${n > 0 ? '+' : ''} ${n}$ es:`;
                     question.correctAnswer = `$(0, ${n})$`;
-                    const incorrects4 = new Set([question.correctAnswer]);
-                    incorrects4.add(`$(${n}, 0)$`);
-                    incorrects4.add(`$(0, ${m})$`);
-                    question.choices = shuffleArray(Array.from(incorrects4).slice(0, 3));
+                    
+                    // FIX: Asegurar 1 correcta + 2 distractores únicos
+                    const distractors4 = new Set();
+                    distractors4.add(`$(${n}, 0)$`);
+                    distractors4.add(`$(0, ${m})$`);
+                    
+                    while (distractors4.size < 2) {
+                        const distractor = `$(0, ${randInt(-5, 5)})$`;
+                        if (distractor !== question.correctAnswer) distractors4.add(distractor);
+                    }
+                    
+                    const finalChoices4 = [question.correctAnswer, ...Array.from(distractors4).slice(0, 2)];
+                    question.choices = shuffleArray(finalChoices4);
                     break;
                 case 5:
                     question.text = "Una función lineal (caso particular de afín) siempre pasa por el punto:";
@@ -318,10 +360,21 @@
                     const n7 = randInt(-6, 6); 
                     question.text = `¿Cuál es la ecuación de una función afín con pendiente $m=${m7}$ e intercepto con el eje Y $n=${n7}$?`;
                     question.correctAnswer = `$f(x) = ${m7 === 1 ? '' : m7}x ${n7 > 0 ? '+' : ''} ${n7}$`;
-                    const incorrects7 = new Set([question.correctAnswer]);
-                    incorrects7.add(`$f(x) = ${n7 === 1 ? '' : n7}x ${m7 > 0 ? '+' : ''} ${m7}$`); 
-                    incorrects7.add(`$f(x) = ${m7 === 1 ? '' : m7}x ${n7 > 0 ? '-' : '+'} ${Math.abs(n7)}$`); 
-                    question.choices = shuffleArray(Array.from(incorrects7).slice(0, 3));
+                    
+                    // FIX: Asegurar 1 correcta + 2 distractores únicos
+                    const distractors7 = new Set();
+                    distractors7.add(`$f(x) = ${n7 === 1 ? '' : n7}x ${m7 > 0 ? '+' : ''} ${m7}$`); 
+                    distractors7.add(`$f(x) = ${m7 === 1 ? '' : m7}x ${n7 > 0 ? '-' : '+'} ${Math.abs(n7)}$`); 
+                    
+                    while (distractors7.size < 2) {
+                        const m_d = randInt(-5, 5);
+                        const n_d = randInt(-8, 8);
+                        const distractor = `$f(x) = ${m_d === 1 ? '' : m_d}x ${n_d > 0 ? '+' : ''} ${n_d}$`;
+                        if (distractor !== question.correctAnswer) distractors7.add(distractor);
+                    }
+                    
+                    const finalChoices7 = [question.correctAnswer, ...Array.from(distractors7).slice(0, 2)];
+                    question.choices = shuffleArray(finalChoices7);
                     break;
                 case 8:
                     let m8, n8, x8, result;
@@ -331,50 +384,86 @@
                         x8 = -n8 / m8;
                     } while (n8 % m8 !== 0 || m8 === 0 || Math.abs(x8) > 5);
                     const isEvaluation = randInt(0, 1);
+                    
                     if (!isEvaluation) {
                         result = x8;
                         question.text = `Para $f(x) = ${m8 === 1 ? '' : m8}x ${n8 > 0 ? '+' : ''} ${n8}$, ¿cuál es el valor de $x$ cuando $f(x) = 0$?`;
-                        const incorrects8 = new Set([result, -result, n8]);
-                        while (incorrects8.size < 3) {
+                        question.correctAnswer = result.toString();
+
+                        // FIX: Asegurar 1 correcta + 2 distractores únicos (Para f(x) = 0)
+                        const distractors8_1 = new Set();
+                        distractors8_1.add(-result);
+                        distractors8_1.add(n8);
+                        while (distractors8_1.size < 2) {
                              const distractor = result + randInt(-3, 3);
-                             if (distractor !== result) incorrects8.add(distractor);
+                             if (distractor !== result) distractors8_1.add(distractor);
                         }
-                        question.choices = shuffleArray(Array.from(incorrects8).slice(0, 3).map(v => v.toString()));
+                        const finalChoices8_1 = [question.correctAnswer, ...Array.from(distractors8_1).filter(d => d !== result).slice(0, 2).map(v => v.toString())];
+                        question.choices = shuffleArray(finalChoices8_1);
+
                     } else {
                         const x_val = randInt(-3, 3);
                         result = m8 * x_val + n8;
                         question.text = `Para $f(x) = ${m8 === 1 ? '' : m8}x ${n8 > 0 ? '+' : ''} ${n8}$, ¿cuál es el valor de $f(${x_val})$?`;
-                        const incorrects8 = new Set([result, -result, n8]);
-                        while (incorrects8.size < 3) {
+                        question.correctAnswer = result.toString();
+
+                        // FIX: Asegurar 1 correcta + 2 distractores únicos (Para evaluación de f(x_val))
+                        const distractors8_2 = new Set();
+                        distractors8_2.add(-result);
+                        distractors8_2.add(n8);
+                        while (distractors8_2.size < 2) {
                              const distractor = result + randInt(-4, 4);
-                             if (distractor !== result) incorrects8.add(distractor);
+                             if (distractor !== result) distractors8_2.add(distractor);
                         }
-                        question.choices = shuffleArray(Array.from(incorrects8).slice(0, 3).map(v => v.toString()));
+                        const finalChoices8_2 = [question.correctAnswer, ...Array.from(distractors8_2).filter(d => d !== result).slice(0, 2).map(v => v.toString())];
+                        question.choices = shuffleArray(finalChoices8_2);
                     }
-                    question.correctAnswer = result.toString();
                     break;
                 case 9:
                     const fixed9 = randInt(10, 50) * 10;
                     const variable9 = randInt(2, 9);
                     question.text = `La función que modela el costo fijo de $${fixed9}$ y un costo variable de $${variable9}$ por unidad ($x$) es:`;
                     question.correctAnswer = `$C(x) = ${variable9}x + ${fixed9}$`;
-                    const incorrects9 = new Set([question.correctAnswer]);
-                    incorrects9.add(`$C(x) = ${fixed9}x + ${variable9}$`);
-                    incorrects9.add(`$C(x) = ${fixed9 + variable9}x$`); 
-                    question.choices = shuffleArray(Array.from(incorrects9).slice(0, 3));
+                    
+                    // FIX: Asegurar 1 correcta + 2 distractores únicos
+                    const distractors9 = new Set();
+                    distractors9.add(`$C(x) = ${fixed9}x + ${variable9}$`);
+                    distractors9.add(`$C(x) = ${fixed9 + variable9}x$`);
+                    
+                    while (distractors9.size < 2) {
+                        const m_d = randInt(1, 10);
+                        const n_d = randInt(100, 1000);
+                        const distractor = `$C(x) = ${m_d}x + ${n_d}$`;
+                        if (distractor !== question.correctAnswer) distractors9.add(distractor);
+                    }
+                    
+                    const finalChoices9 = [question.correctAnswer, ...Array.from(distractors9).slice(0, 2)];
+                    question.choices = shuffleArray(finalChoices9);
                     break;
                 case 10:
                     question.text = "¿Qué representa la '$n$' en la forma $f(x) = mx + n$?";
                     question.correctAnswer = "El intercepto con Y";
                     question.choices = shuffleArray(["La pendiente", "La variable dependiente", "El intercepto con Y"].filter(c => c !== question.correctAnswer).slice(0, 2).concat(question.correctAnswer));
                     break;
-                case 11: return generateRandomQuestion(1); 
-                case 12: return generateRandomQuestion(2); 
-                default: return generateRandomQuestion(randInt(1, 10)); 
+                default: 
+                    // Si el tipo es inesperado, recursión controlada a un tipo conocido
+                    return generateRandomQuestion(randInt(1, 10)); 
             }
+            
+            // Buscar el índice correcto (no debería fallar tras el FIX)
             const correctIndex = question.choices.findIndex(c => c === question.correctAnswer.toString());
-            if (correctIndex === -1) { return generateRandomQuestion(type); }
-            question.correct = correctIndex;
+            
+            // Si por alguna razón la respuesta correcta no se encuentra (ERROR EN LÓGICA), 
+            // lanzamos un error para detener la recursión o ajustamos el índice a -1 si no se encuentra.
+            // La revisión a mano de los casos 1, 2, 4, 7, 8, 9 garantiza que el correctIndex NO sea -1.
+            if (correctIndex === -1) {
+                console.error("ERROR CRÍTICO: La respuesta correcta no está en las opciones generadas para el tipo", type, question);
+                // Forzamos un valor por si acaso, aunque la lógica debería ser infalible
+                question.correct = 0; 
+            } else {
+                question.correct = correctIndex;
+            }
+
             question.userChoice = null; 
             question.isCorrect = null; 
             question.isGraded = false;
@@ -383,7 +472,8 @@
         }
 
         function getQuestionBank() {
-            const types = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+            // FIX: Usamos los 10 tipos base, y repetimos los primeros 2 para asegurar 12 preguntas.
+            const types = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2]; // 12 total questions
             const bank = types.map(type => generateRandomQuestion(type));
             return shuffleArray(bank);
         }
@@ -486,10 +576,6 @@
                 return;
             }
             
-            // CORRECCIÓN CRÍTICA: Se eliminó la línea 'hideModal()' de aquí.
-            // Si showResults llama a renderStage, esta línea cerraba inmediatamente el modal de resultados.
-            // La función hideModal() ahora solo es llamada explícitamente por navigate() o por el botón de cierre del modal.
-
             if (STATE.questions.length === 0) {
                 document.getElementById('stage').innerHTML = '<p class="text-center text-muted">Generando preguntas...</p>';
                 return;
@@ -665,7 +751,6 @@
             showSummaryModal(reportText.summaryHTML, correctCount, percentage); // Aquí se muestra el modal
             
             // Renderizar la etapa nuevamente para mostrar los colores de calificación
-            // El modal *permanecerá abierto* porque eliminamos la llamada a hideModal() de renderStage
             renderStage(); 
             
             // Enviar reporte (asíncrono)
@@ -715,9 +800,11 @@
                 `<h2 class="text-3xl font-extrabold mb-4 text-warn">¡Buen Intento!</h2>`;
                 
             let summaryHTML = congratsMessage;
+            
+            // APLICACIÓN DEL REQUERIMIENTO: Texto en blanco sobre fondo azul (var(--accent))
             summaryHTML += `
-                <p class="text-2xl font-black mb-4" style="color:var(--accent)">
-                    Obtuviste un ${percentage}%
+                <p class="text-lg font-bold mb-4">
+                    <span class="result-percentage-text">Obtuviste un ${percentage}%</span>
                 </p>
             `;
             
@@ -762,8 +849,17 @@
                 </div>
             `;
 
-            document.getElementById('modal-content').innerHTML = restartButtonHTML + contentHTML + 
-                '<p class="mt-8 text-center"><button onclick="hideModal()" class="action-button bg-chip text-text py-3 px-6 hover:bg-chip-hover border border-gray-300">Cerrar y Revisar</button></p>';
+            // APLICACIÓN DEL REQUERIMIENTO: Botón "Cerrar y Revisar" con estilo blanco y azul
+            const closeButtonHTML = `
+                <p class="mt-8 text-center">
+                    <button onclick="hideModal()" class="action-button py-3 px-6 btn-close-review font-black hover:bg-gray-100">
+                        Cerrar y Revisar
+                    </button>
+                </p>
+            `;
+
+
+            document.getElementById('modal-content').innerHTML = restartButtonHTML + contentHTML + closeButtonHTML;
             
             // Se usa items-start pt-16 para mostrarlo más arriba
             document.getElementById('result-modal').classList.remove('hidden'); 
