@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Quiz: Funciones Lineales y Afines</title>
+    <title>Quiz: Funciones Lineales y Afines - App</title>
     <!-- Carga de Tailwind CSS para un diseño limpio y responsivo -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Carga de Tone.js para efectos de sonido (minimalista) -->
@@ -11,12 +11,18 @@
     <style>
         /* Definición de variables CSS para el tema oscuro */
         :root{ 
-            --bg:#0b1020; --panel:#11182e; --muted:#9fb0d6; --text:#f2f5ff; 
-            --accent:#4ea1ff; --warn:#ffd23f; --error:#ff6682; --ok:#53f29f; 
-            --chip:#1b2544; --chip-hover:#25335d;
+            --bg:#070b14; /* Fondo más profundo, casi negro */
+            --panel:#101525; /* Panel más definido */
+            --muted:#adb9d4; 
+            --text:#f2f5ff; 
+            --accent:#4ea1ff; /* Azul estándar */
+            --warn:#ffc107; /* Amarillo para CTA */
+            --error:#ff4d6b; 
+            --ok:#4ce08e; 
+            --chip:#1b2544; 
+            --chip-hover:#25335d;
         }
         
-        /* Ajuste para móvil: Usar flex-column para asegurar que los controles de navegación no se salgan de pantalla */
         body { 
             font-family: 'Inter', sans-serif; 
             background: var(--bg); 
@@ -24,34 +30,23 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            /* IDEA 1: Fondo con granularidad sutil para sofisticación */
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
         }
         
+        /* Estilos base */
         .chip { transition: all 0.2s; border-radius: 9999px; }
-        .chip:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .pulse { animation: pulse 2s infinite; }
         @keyframes pulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--accent); }
-            50% { opacity: 0.8; box-shadow: 0 0 0 10px rgba(78, 161, 255, 0); }
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--warn); }
+            50% { opacity: 0.8; box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
         }
-        /* Estilos específicos para la alternativa seleccionada */
+        
         .choice-selected { 
             background-color: var(--accent) !important; 
             color: var(--bg) !important;
             font-weight: 600;
         }
-        /* Estilos para el Toast (notificaciones) */
-        #toast {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            padding: 12px 24px; color: var(--text);
-            border-radius: 8px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-            opacity: 0; transition: opacity 0.5s, transform 0.5s; z-index: 1000;
-            min-width: 200px; text-align: center; font-weight: 600;
-        }
-        .toast-accent { background: var(--accent); color: var(--bg); }
-        .toast-warn { background: var(--warn); color: var(--bg); }
-        .toast-error { background: var(--error); color: var(--text); }
-        .toast-ok { background: var(--ok); color: var(--bg); }
-        .show-toast { opacity: 1 !important; transform: translate(-50%, 0) !important; }
         
         /* Layout responsivo mejorado */
         .choices-grid { display: grid; gap: 1rem; }
@@ -61,9 +56,36 @@
 
         .action-button {
             transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
             font-weight: 700;
             border-radius: 0.75rem; /* rounded-xl */
+        }
+        
+        /* IDEA 3: Efectos de Brillo (Glow) */
+        .glow-on-hover:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px var(--accent), 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+        .glow-accent {
+            box-shadow: 0 0 8px var(--accent), inset 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* IDEA 2: Barra de navegación fija y flotante (Sticky Footer) */
+        .sticky-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--panel);
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5); /* Sombra hacia arriba */
+            z-index: 20;
+            padding: 1rem 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Ajustar el padding del main para que el contenido no quede oculto bajo el footer */
+        main {
+            padding-bottom: 7rem; /* Espacio para el sticky footer */
         }
 
         /* Estilo para notación matemática simple */
@@ -74,11 +96,19 @@
             border-radius: 4px;
             color: var(--accent);
         }
-
-        /* CORRECCIÓN DE USABILIDAD MÓVIL: Asegura que el botón de resultados sea fácilmente clickeable */
+        
+        /* Botón de Resultados con gradiente fuerte y glow */
         #btnEnviar {
             pointer-events: auto;
+            background-image: linear-gradient(to right, var(--warn), #ffcc00);
+            color: var(--bg);
         }
+        #btnEnviar:hover:not(:disabled) {
+            transform: translateY(-2px);
+            /* Sombra Glow de advertencia */
+            box-shadow: 0 0 15px var(--warn), 0 6px 15px rgba(0, 0, 0, 0.5);
+        }
+
     </style>
     <script>
         // *****************************************************************************
@@ -89,102 +119,57 @@
 
         // Objeto de Estado Centralizado (SSM)
         const STATE = {
-            questions: [], // Array de preguntas
-            current: 0,    // Índice de la pregunta actual
-            isGraded: false, // Modo de revisión
-            correctCount: 0, // Contador de respuestas correctas
+            questions: [], 
+            current: 0,    
+            isGraded: false, 
+            correctCount: 0, 
             TOTAL_QUESTIONS: 12, 
         };
 
         // -----------------------------------------------------------
-        // 0. CONFIGURACIÓN DE SONIDO (Tone.js)
+        // 0. CONFIGURACIÓN DE AUDIO, TOAST Y UTILS (Mantenido)
         // -----------------------------------------------------------
 
         let clickSynth, navSynth, successSynth, failSynth;
 
         function initializeAudio() {
-            // Inicializar un sintetizador simple para clics
-            clickSynth = new Tone.MembraneSynth({
-                oscillator: { type: "square" },
-                envelope: { attack: 0.001, decay: 0.1, sustain: 0.01, release: 0.1 }
-            }).toDestination();
-
-            // Inicializar un sintetizador para navegación
-            navSynth = new Tone.Synth({
-                oscillator: { type: "triangle" },
-                envelope: { attack: 0.005, decay: 0.15, sustain: 0.01, release: 0.1 }
-            }).toDestination();
-            
-            // Inicializar sintetizadores para resultados
+            clickSynth = new Tone.MembraneSynth({ oscillator: { type: "square" }, envelope: { attack: 0.001, decay: 0.1, sustain: 0.01, release: 0.1 } }).toDestination();
+            navSynth = new Tone.Synth({ oscillator: { type: "triangle" }, envelope: { attack: 0.005, decay: 0.15, sustain: 0.01, release: 0.1 } }).toDestination();
             successSynth = new Tone.PolySynth(Tone.Synth).toDestination();
             failSynth = new Tone.PolySynth(Tone.Synth).toDestination();
         }
 
         async function playSound(type) {
-            // Asegurar que el audio se inicie después de la interacción del usuario
             await Tone.start(); 
-            
             switch (type) {
-                case 'click':
-                    clickSynth.triggerAttackRelease("C5", "8n");
-                    break;
-                case 'nav':
-                    navSynth.triggerAttackRelease("C4", "16n");
-                    break;
-                case 'success':
-                    successSynth.triggerAttackRelease(["C5", "E5", "G5"], "4n");
-                    break;
-                case 'fail':
-                    failSynth.triggerAttackRelease(["C3", "C#3", "D3"], "8n");
-                    break;
+                case 'click': clickSynth.triggerAttackRelease("C5", "8n"); break;
+                case 'nav': navSynth.triggerAttackRelease("C4", "16n"); break;
+                case 'success': successSynth.triggerAttackRelease(["C5", "E5", "G5"], "4n"); break;
+                case 'fail': failSynth.triggerAttackRelease(["C3", "C#3", "D3"], "8n"); break;
             }
         }
 
-
-        // -----------------------------------------------------------
-        // FUNCIÓN DE NOTIFICACIÓN TOAST
-        // -----------------------------------------------------------
-
-        // AUMENTO DEL TIEMPO: 3000ms -> 6000ms
         const TOAST_DURATION = 6000; 
         let toastTimeout;
         
         function showToast(message, type = 'panel') {
             const toast = document.getElementById('toast');
-            
             toast.className = 'bg-panel text-text'; 
             
             switch (type) {
-                case 'accent':
-                    toast.classList.add('toast-accent');
-                    break;
-                case 'warn':
-                    toast.classList.add('toast-warn');
-                    break;
-                case 'error':
-                    toast.classList.add('toast-error');
-                    break;
-                case 'ok':
-                    toast.classList.add('toast-ok');
-                    break;
-                default:
-                    toast.classList.add('bg-panel');
-                    break;
+                case 'accent': toast.classList.add('toast-accent'); break;
+                case 'warn': toast.classList.add('toast-warn'); break;
+                case 'error': toast.classList.add('toast-error'); break;
+                case 'ok': toast.classList.add('toast-ok'); break;
+                default: toast.classList.add('bg-panel'); break;
             }
             
             toast.textContent = message;
             toast.classList.add('show-toast');
 
             clearTimeout(toastTimeout);
-            toastTimeout = setTimeout(() => {
-                toast.classList.remove('show-toast');
-            }, TOAST_DURATION); 
+            toastTimeout = setTimeout(() => { toast.classList.remove('show-toast'); }, TOAST_DURATION); 
         }
-
-
-        // -----------------------------------------------------------
-        // 1. GENERACIÓN DINÁMICA DE PREGUNTAS
-        // -----------------------------------------------------------
 
         const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
         
@@ -199,7 +184,8 @@
         function formatMath(text) {
             return text.replace(/\$(.*?)\$/g, (match, p1) => `<span class="math-expr">${p1.replace(/\s/g, '&nbsp;')}</span>`);
         }
-
+        
+        // Función para generar preguntas (Mantenido el mismo set de 12 tipos)
         function generateRandomQuestion(type) {
             let question = {};
             let m, n, x, val;
@@ -210,14 +196,11 @@
             n = randInt(rangeN[0], rangeN[1]);
 
             switch (type) {
-                // TIPO 1: Evaluación de la Función (f(x) = mx + n) - Solicitado
                 case 1: 
                     x = randInt(-3, 3); 
                     val = m * x + n; 
-                    
                     question.text = `Si $f(x) = ${m === 1 ? '' : m}x ${n > 0 ? '+' : ''} ${n}$, ¿Cuál es el valor de $f(${x})$?`;
                     question.correctAnswer = val.toString();
-                    
                     const incorrects1 = new Set([val, m * x - n, m + x + n]);
                     while (incorrects1.size < 3) {
                         const distractor = val + randInt(-4, 4);
@@ -225,20 +208,15 @@
                     }
                     question.choices = shuffleArray(Array.from(incorrects1).slice(0, 3).map(v => v.toString()));
                     break;
-
-                // TIPO 2: Cálculo de Pendiente (dada la función) - Solicitado
                 case 2:
                     question.text = `¿Cuál es la pendiente ($m$) de la función $f(x) = ${m}x ${n > 0 ? '+' : ''} ${n}$?`;
                     question.correctAnswer = m.toString();
-                    
                     const incorrects2 = new Set([m, n, -m]);
                     while (incorrects2.size < 3) {
                         incorrects2.add(m + randInt(-3, 3));
                     }
                     question.choices = shuffleArray(Array.from(incorrects2).slice(0, 3).map(v => v.toString()));
                     break;
-                
-                // TIPO 3: Clasificación Lineal vs Afín (n=0 vs n!=0) - Solicitado
                 case 3:
                     const isLinear = randInt(0, 1);
                     if (isLinear) {
@@ -250,52 +228,34 @@
                     }
                     question.choices = shuffleArray(["Afín", "Constante", "Lineal", "Cuadrática"].filter(c => c !== question.correctAnswer).slice(0, 2).concat(question.correctAnswer));
                     break;
-
-                // TIPO 4: Intercepto con Y (Ordenada al Origen) - Solicitado
                 case 4:
                     question.text = `El punto de corte con el eje Y (intercepto) de $f(x) = ${m}x ${n > 0 ? '+' : ''} ${n}$ es:`;
                     question.correctAnswer = `$(0, ${n})$`;
-                    
                     const incorrects4 = new Set([question.correctAnswer]);
                     incorrects4.add(`$(${n}, 0)$`);
                     incorrects4.add(`$(0, ${m})$`);
-                    
                     question.choices = shuffleArray(Array.from(incorrects4).slice(0, 3));
                     break;
-                
-                // TIPO 5: Pasa por el Origen (Lineal) - Solicitado: "Una función lineal siempre pasa por el punto:"
                 case 5:
                     question.text = "Una función lineal (caso particular de afín) siempre pasa por el punto:";
                     question.correctAnswer = "$(0, 0)$ (Origen)";
-                    
                     question.choices = shuffleArray(["$(0, 1)$", "$(1, 0)$", "$(0, 0)$ (Origen)"].filter(c => c !== question.correctAnswer).slice(0, 2).concat(question.correctAnswer));
                     break;
-                
-                // TIPO 6: Pasa por un punto que NO es el Origen (Afín) - Solicitado
                 case 6:
-                    // Usamos un ejemplo para que sea una pregunta de opción fija.
                     question.text = `Si la función $f(x) = -4x + 6$ es afín, ¿por qué punto **no** pasa su gráfica?`;
                     question.correctAnswer = "$(0, 0)$";
-                    
                     question.choices = shuffleArray(["$(1, 2)$", "$(0, 6)$", "$(0, 0)$"].filter(c => c !== question.correctAnswer).slice(0, 2).concat(question.correctAnswer));
                     break;
-
-                // TIPO 7: Ecuación desde Puntos (Pendiente m e intercepto n) - Solicitado
                 case 7:
                     const m7 = randInt(-4, 4); 
                     const n7 = randInt(-6, 6); 
-                    // Se cambió "ordenada al origen" por "intercepto con el eje Y"
                     question.text = `¿Cuál es la ecuación de una función afín con pendiente $m=${m7}$ e intercepto con el eje Y $n=${n7}$?`;
                     question.correctAnswer = `$f(x) = ${m7 === 1 ? '' : m7}x ${n7 > 0 ? '+' : ''} ${n7}$`;
-
                     const incorrects7 = new Set([question.correctAnswer]);
                     incorrects7.add(`$f(x) = ${n7 === 1 ? '' : n7}x ${m7 > 0 ? '+' : ''} ${m7}$`); 
                     incorrects7.add(`$f(x) = ${m7 === 1 ? '' : m7}x ${n7 > 0 ? '-' : '+'} ${Math.abs(n7)}$`); 
-                    
                     question.choices = shuffleArray(Array.from(incorrects7).slice(0, 3));
                     break;
-                
-                // TIPO 8: PUNTO CERO (Raíz) o EVALUACIÓN - CORREGIDA Y VARIADA
                 case 8:
                     let m8, n8, x8, result;
                     do {
@@ -303,27 +263,20 @@
                         n8 = randInt(1, 10) * (randInt(0, 1) ? 1 : -1);
                         x8 = -n8 / m8;
                     } while (n8 % m8 !== 0 || m8 === 0 || Math.abs(x8) > 5);
-                    
                     const isEvaluation = randInt(0, 1);
-                    
                     if (!isEvaluation) {
-                        // Pregunta por la Raíz (x cuando f(x)=0)
                         result = x8;
                         question.text = `Para $f(x) = ${m8 === 1 ? '' : m8}x ${n8 > 0 ? '+' : ''} ${n8}$, ¿cuál es el valor de $x$ cuando $f(x) = 0$?`;
-                        
                         const incorrects8 = new Set([result, -result, n8]);
                         while (incorrects8.size < 3) {
                              const distractor = result + randInt(-3, 3);
                              if (distractor !== result) incorrects8.add(distractor);
                         }
                         question.choices = shuffleArray(Array.from(incorrects8).slice(0, 3).map(v => v.toString()));
-
                     } else {
-                        // Pregunta por la Imagen (f(x) cuando x=...)
                         const x_val = randInt(-3, 3);
                         result = m8 * x_val + n8;
                         question.text = `Para $f(x) = ${m8 === 1 ? '' : m8}x ${n8 > 0 ? '+' : ''} ${n8}$, ¿cuál es el valor de $f(${x_val})$?`;
-                        
                         const incorrects8 = new Set([result, -result, n8]);
                         while (incorrects8.size < 3) {
                              const distractor = result + randInt(-4, 4);
@@ -331,51 +284,29 @@
                         }
                         question.choices = shuffleArray(Array.from(incorrects8).slice(0, 3).map(v => v.toString()));
                     }
-                    
                     question.correctAnswer = result.toString();
                     break;
-
-                // TIPO 9: MODELADO (Costo fijo + Costo variable) - Solicitado
                 case 9:
                     const fixed9 = randInt(10, 50) * 10;
                     const variable9 = randInt(2, 9);
-                    
                     question.text = `La función que modela el costo fijo de $${fixed9}$ y un costo variable de $${variable9}$ por unidad ($x$) es:`;
                     question.correctAnswer = `$C(x) = ${variable9}x + ${fixed9}$`;
-                    
                     const incorrects9 = new Set([question.correctAnswer]);
                     incorrects9.add(`$C(x) = ${fixed9}x + ${variable9}$`);
                     incorrects9.add(`$C(x) = ${fixed9 + variable9}x$`); 
-                    
                     question.choices = shuffleArray(Array.from(incorrects9).slice(0, 3));
                     break;
-
-                // TIPO 10: TÉRMINOS (¿Qué es n?) - Solicitado
                 case 10:
                     question.text = "¿Qué representa la '$n$' en la forma $f(x) = mx + n$?";
                     question.correctAnswer = "El intercepto con Y";
                     question.choices = shuffleArray(["La pendiente", "La variable dependiente", "El intercepto con Y"].filter(c => c !== question.correctAnswer).slice(0, 2).concat(question.correctAnswer));
                     break;
-                
-                // TIPO 11: Repetición TIPO 1 (Evaluación)
-                case 11:
-                    return generateRandomQuestion(1); 
-
-                // TIPO 12: Repetición TIPO 2 (Pendiente)
-                case 12:
-                    return generateRandomQuestion(2); 
-
-                default:
-                    return generateRandomQuestion(randInt(1, 10)); 
+                case 11: return generateRandomQuestion(1); 
+                case 12: return generateRandomQuestion(2); 
+                default: return generateRandomQuestion(randInt(1, 10)); 
             }
-            
             const correctIndex = question.choices.findIndex(c => c === question.correctAnswer.toString());
-            
-            if (correctIndex === -1) {
-                 // Si la respuesta correcta no está en el set reducido, regenerar
-                 return generateRandomQuestion(type); 
-            }
-
+            if (correctIndex === -1) { return generateRandomQuestion(type); }
             question.correct = correctIndex;
             question.userChoice = null; 
             question.isCorrect = null; 
@@ -385,14 +316,13 @@
         }
 
         function getQuestionBank() {
-            // Aseguramos que la pregunta 8 (la modificada) esté presente en el banco de preguntas
             const types = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
             const bank = types.map(type => generateRandomQuestion(type));
             return shuffleArray(bank);
         }
 
         // -----------------------------------------------------------
-        // 2. LÓGICA DE ESTADO Y FLUJO
+        // 1. LÓGICA DE ESTADO Y FLUJO (Mantenido)
         // -----------------------------------------------------------
 
         function initializeState() {
@@ -404,25 +334,17 @@
 
         function selectChoice(choiceIndex) {
             if (STATE.isGraded) return; 
-
             const question = STATE.questions[STATE.current];
             if (question.userChoice !== choiceIndex) {
                  playSound('click'); 
                  question.userChoice = choiceIndex;
-            } else {
-                 // No permitir deseleccionar
-            }
+            } 
 
             if (STATE.current === STATE.questions.length - 1) {
                 const isAllAnswered = STATE.questions.every(q => q.userChoice !== null);
                 const btnEnviar = document.getElementById('btnEnviar');
-                if (isAllAnswered) {
-                    btnEnviar.classList.add('pulse', 'bg-warn/90');
-                } else {
-                    btnEnviar.classList.remove('pulse', 'bg-warn/90');
-                }
+                btnEnviar.classList.toggle('pulse', isAllAnswered);
             }
-            
             renderStage();
         }
 
@@ -447,12 +369,12 @@
                     correctCount++;
                 }
             });
-            STATE.correctCount = correctCount; // Actualizar el estado central
+            STATE.correctCount = correctCount; 
             return correctCount;
         }
 
         // -----------------------------------------------------------
-        // 3. RENDERIZADO DEL UI (Actualización del DOM)
+        // 2. RENDERIZADO DEL UI
         // -----------------------------------------------------------
 
         function renderScoreBadge() {
@@ -473,27 +395,30 @@
             const currentQ = STATE.questions[STATE.current];
             const stageEl = document.getElementById('stage');
             
-            stageEl.innerHTML = `
-                <div class="text-xl md:text-2xl font-bold mb-8 text-text">
-                    <span class="text-accent">${STATE.current + 1}.</span> ${formatMath(currentQ.text)}
+            // Renderiza el número de pregunta con estilo de chip
+            const questionNumberHTML = `
+                <div class="flex items-start gap-4 mb-6 text-xl md:text-2xl font-bold text-text">
+                    <span class="bg-chip/50 text-accent px-4 py-1 rounded-full shadow-inner shadow-black/30 text-lg md:text-xl shrink-0">${STATE.current + 1}.</span> 
+                    <span class="flex-1">${formatMath(currentQ.text)}</span>
                 </div>
             `;
+
+            stageEl.innerHTML = questionNumberHTML;
             
+            // Contenedor de Opciones
             const choicesContainer = document.createElement('div');
             choicesContainer.className = 'choices-grid';
             
             currentQ.choices.forEach((choiceText, index) => {
                 const isSelected = currentQ.userChoice === index;
                 
-                // Reducción de tamaño: p-3/p-4, text-base/text-lg
-                // Margen amarillo sutil: ring-1 ring-warn/50
-                let choiceClasses = "chip p-3 md:p-4 text-base md:text-lg border-2 cursor-pointer transition duration-300 shadow-xl text-center font-medium ring-1 ring-warn/50 ring-offset-panel ";
+                let choiceClasses = "chip p-3 md:p-4 text-base md:text-lg border-2 cursor-pointer transition duration-300 shadow-xl text-center font-medium glow-on-hover ";
                 
                 if (STATE.isGraded) {
                     if (index === currentQ.correct) {
-                        choiceClasses += " border-ok bg-ok/10 text-ok";
+                        choiceClasses += " border-ok bg-ok/10 text-ok glow-accent";
                         if (isSelected) {
-                            choiceClasses += " choice-selected !bg-ok/80 !text-bg";
+                            choiceClasses += " choice-selected !bg-ok/80 !text-bg !shadow-lg";
                         }
                     } else if (isSelected && !currentQ.isCorrect) {
                         choiceClasses += " border-error bg-error/10 text-error";
@@ -503,9 +428,9 @@
                 } 
                 else {
                     if (isSelected) {
-                        choiceClasses += " choice-selected border-accent bg-accent/90 text-bg shadow-2xl scale-[1.02]";
+                        choiceClasses += " choice-selected border-accent bg-accent/90 text-bg shadow-2xl scale-[1.02] glow-accent";
                     } else {
-                        choiceClasses += " border-chip bg-chip hover:bg-chip-hover";
+                        choiceClasses += " border-chip/50 bg-chip hover:bg-chip-hover";
                     }
                 }
 
@@ -517,10 +442,9 @@
                     choiceEl.onclick = () => selectChoice(index);
                 }
                 
-                choicesContainer.appendChild(choiceEl);
+                stageEl.appendChild(choiceEl); 
             });
             
-            stageEl.appendChild(choicesContainer);
             renderMapAndButtons();
             renderScoreBadge();
         }
@@ -529,26 +453,25 @@
             const mapContainer = document.getElementById('mapa');
             mapContainer.innerHTML = '';
             
+            // Renderizar Mapa de Chips
             STATE.questions.forEach((q, index) => {
                 const chip = document.createElement('div');
-                let chipClasses = 'chip text-xs px-3 py-1 cursor-pointer font-bold transition duration-150 ';
+                let chipClasses = 'chip text-xs px-3 py-1 cursor-pointer font-bold transition duration-150 border border-white/10 shadow-inner ';
                 
-                // 1. Estado de Pregunta Contestada (sólo si no está en modo calificado)
                 if (q.userChoice !== null && !STATE.isGraded) {
                     chipClasses += 'bg-chip-hover text-text hover:bg-accent/50';
                 } else if (q.userChoice === null) {
                     chipClasses += 'bg-chip text-muted hover:bg-chip-hover';
                 }
 
-                // 2. Estado de Calificado
                 if (STATE.isGraded) {
                     if (q.isCorrect) chipClasses = chipClasses.replace(/bg-.*/, 'bg-ok/70 text-bg shadow-lg');
                     else if (q.userChoice !== null) chipClasses = chipClasses.replace(/bg-.*/, 'bg-error/70 text-bg shadow-lg');
                 }
                 
-                // 3. Pregunta Actual (Override todos los colores)
+                // Pregunta Actual (Usa ring y sombra más dramática)
                 if (index === STATE.current) {
-                    chipClasses = 'chip text-xs px-3 py-1 cursor-pointer font-bold transition duration-150 bg-accent text-bg shadow-xl scale-110 ring-2 ring-warn ring-offset-2 ring-offset-panel';
+                    chipClasses = 'chip text-xs px-3 py-1 cursor-pointer font-bold transition duration-150 bg-accent text-bg shadow-xl scale-110 ring-2 ring-warn/80 ring-offset-2 ring-offset-panel';
                 }
 
 
@@ -558,6 +481,7 @@
                 mapContainer.appendChild(chip);
             });
 
+            // Actualizar botones de navegación
             document.getElementById('btnPrev').disabled = STATE.current === 0;
             document.getElementById('btnNext').disabled = STATE.current === STATE.questions.length - 1;
             
@@ -566,23 +490,24 @@
 
             if (STATE.isGraded) {
                 btnEnviar.textContent = 'Reiniciar Quiz';
-                btnEnviar.classList.remove('bg-warn/90', 'pulse', 'opacity-50');
+                btnEnviar.classList.remove('pulse');
                 btnEnviar.classList.add('bg-accent');
+                btnEnviar.style.backgroundImage = 'none'; 
                 btnEnviar.disabled = false;
                 btnEnviar.onclick = restartQuiz;
             } else {
                 btnEnviar.textContent = `Resultados (${STATE.questions.filter(q=>q.userChoice!==null).length}/${STATE.questions.length})`;
                 btnEnviar.classList.remove('bg-accent');
-                btnEnviar.classList.toggle('bg-warn/90', isAllAnswered);
                 btnEnviar.classList.toggle('pulse', isAllAnswered);
-                btnEnviar.classList.toggle('opacity-50', !isAllAnswered);
+                btnEnviar.classList.toggle('opacity-30', !isAllAnswered);
+                btnEnviar.style.backgroundImage = isAllAnswered ? 'linear-gradient(to right, var(--warn), #ffcc00)' : 'none';
                 btnEnviar.disabled = !isAllAnswered;
                 btnEnviar.onclick = showResults;
             }
         }
 
         // -----------------------------------------------------------
-        // 4. FUNCIONALIDAD PRINCIPAL Y REPORTE
+        // 3. FUNCIONALIDAD PRINCIPAL Y REPORTE (Mantenido)
         // -----------------------------------------------------------
 
         function showResults() {
@@ -601,7 +526,6 @@
             STATE.isGraded = true;
             STATE.current = 0; 
             
-            // Sonido de resultado
             if (correctCount >= totalQuestions * 0.75) {
                 playSound('success');
                 showToast('¡Felicidades! Excelente puntaje.', 'ok');
@@ -613,14 +537,7 @@
             const reportText = generateReport(correctCount, totalQuestions, percentage);
             showSummaryModal(reportText.summaryHTML);
 
-            // Intentar enviar el reporte por correo
-            const isSent = sendReportBeacon(reportText.rawText, correctCount, totalQuestions);
-
-            if (isSent) {
-                 // No mostrar toast de reporte aquí para no opacar el toast del puntaje
-            } else {
-                 console.error('⚠️ Error: No se pudo encolar el reporte. Revisa la URL o el Apps Script.');
-            }
+            sendReportBeacon(reportText.rawText, correctCount, totalQuestions);
 
             renderStage();
         }
@@ -681,7 +598,7 @@
         
         function showSummaryModal(contentHTML) {
             document.getElementById('modal-content').innerHTML = contentHTML + 
-                '<p class="mt-8 text-center"><button onclick="hideModal()" class="action-button bg-accent text-bg py-3 px-6 hover:bg-accent/80">Revisar Respuestas</button></p>';
+                '<p class="mt-8 text-center"><button onclick="hideModal()" class="action-button bg-accent text-bg py-3 px-6 hover:bg-accent/80 glow-on-hover">Revisar Respuestas</button></p>';
             document.getElementById('modal').classList.remove('hidden');
         }
         
@@ -710,7 +627,7 @@
         }
         
         function initApp() {
-            initializeAudio(); // Inicializar sintetizadores de audio
+            initializeAudio(); 
             initializeState();
             
             document.getElementById('btnPrev').onclick = () => navigate(-1);
@@ -726,19 +643,18 @@
 </head>
 <body class="flex flex-col">
     <!-- Encabezado Fijo con Diseño Elevado -->
-    <header class="bg-panel shadow-2xl sticky top-0 z-10">
+    <header class="bg-panel shadow-2xl sticky top-0 z-10 border-b border-white/5">
         <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
             <!-- Título Limitado a "Funciones" -->
             <h1 class="text-2xl font-extrabold text-accent flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-warn">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                    <path d="M2 17l10 5 10-5"></path>
-                    <path d="M2 12l10 5 10-5"></path>
+                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                    <path d="m15 5 4 4"/>
                 </svg>
                 Funciones
             </h1>
-            <!-- Badge de Puntaje Dinámico -->
-            <div id="scoreBadge" class="text-sm font-semibold text-warn bg-chip px-3 py-1 rounded-full shadow-md">
+            <!-- Badge de Puntaje Dinámico con mejor estilo -->
+            <div id="scoreBadge" class="text-sm font-semibold text-warn bg-chip px-4 py-1.5 rounded-full shadow-lg border border-warn/30">
                 Puntaje: --/12
             </div>
         </div>
@@ -749,37 +665,42 @@
         <div class="max-w-4xl mx-auto bg-panel p-6 md:p-10 rounded-2xl shadow-2xl border-t-4 border-accent/50">
             
             <!-- Contenedor de la Pregunta y Alternativas -->
-            <div id="stage" class="min-h-[250px] flex flex-col justify-center">
+            <div id="stage" class="min-h-[250px] flex flex-col justify-center gap-4">
                 <p class="text-center text-muted">Cargando...</p>
             </div>
             
-            <!-- Controles de Navegación y Envío -->
-            <div class="mt-8 pt-6 border-t border-white/10">
-                
-                <!-- Mapa de Navegación (Chips) -->
-                <div id="mapa" class="flex flex-wrap justify-center gap-3 mb-6">
-                    <!-- Chips de navegación -->
-                </div>
-
-                <!-- Botones de Control -->
-                <div class="flex justify-between items-center gap-4">
-                    <button id="btnPrev" class="action-button bg-chip text-text p-3 w-1/3 hover:bg-chip-hover disabled:opacity-50" disabled>
-                        &#9664; Anterior
-                    </button>
-                    
-                    <!-- Botón de Resultados: La clase #btnEnviar se marcó como pointer-events: auto; en CSS para mejorar la interacción táctil. -->
-                    <button id="btnEnviar" class="action-button bg-warn text-bg p-3 w-1/3 font-extrabold hover:opacity-80 disabled:opacity-30">
-                        Resultados
-                    </button>
-                    
-                    <button id="btnNext" class="action-button bg-chip text-text p-3 w-1/3 hover:bg-chip-hover disabled:opacity-50">
-                        Siguiente &#9654;
-                    </button>
-                </div>
-            </div>
+            <!-- IDEA 2: Mapa de Navegación se mueve al Sticky Footer -->
         </div>
     </main>
     
+    <!-- IDEA 2: Sticky Footer Fijo para la navegación tipo App Móvil -->
+    <footer class="sticky-footer">
+        <div class="max-w-4xl mx-auto px-4">
+            <!-- Mapa de Navegación (Chips) -->
+            <div id="mapa" class="flex flex-wrap justify-center gap-3 mb-4">
+                <!-- Chips de navegación -->
+            </div>
+            
+            <!-- Botones de Control -->
+            <div class="flex justify-between items-center gap-4">
+                <button id="btnPrev" class="action-button bg-chip text-text p-3 w-1/3 hover:bg-chip-hover disabled:opacity-30 flex items-center justify-center gap-1 glow-on-hover" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                    Anterior
+                </button>
+                
+                <!-- Botón de Resultados: La clase #btnEnviar ahora tiene un gradiente y sombra más agresiva. -->
+                <button id="btnEnviar" class="action-button text-bg p-3 w-1/3 font-extrabold disabled:opacity-30">
+                    Resultados
+                </button>
+                
+                <button id="btnNext" class="action-button bg-chip text-text p-3 w-1/3 hover:bg-chip-hover disabled:opacity-30 flex items-center justify-center gap-1 glow-on-hover">
+                    Siguiente 
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+            </div>
+        </div>
+    </footer>
+
     <!-- Toast (Notificación) -->
     <div id="toast" role="alert"></div>
 
