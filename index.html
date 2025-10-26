@@ -11,7 +11,7 @@
     <style>
         /* Definición de variables CSS para el tema CLARO/SUAVE */
         :root{ 
-            --bg:#f0f1f4;    /* Fondo gris muy claro, suave */
+            --bg:#f0f1f4;    /* Fondo gris muy claro, suave (Para fondo global y modal de bienvenida) */
             --panel:#ffffff; /* Panel blanco puro */
             --muted:#6c757d; 
             --text:#212529;  /* Texto oscuro casi negro */
@@ -43,16 +43,23 @@
             50% { opacity: 0.8; box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
         }
         
+        /* Asegura que el texto seleccionado también sea negro si no está calificado, 
+           pero se vuelve blanco en fondo azul por contraste. Lo manejamos en JS también. */
         .choice-selected { 
             background-color: var(--accent) !important; 
-            color: var(--panel) !important; /* Texto blanco en fondo azul */
+            color: var(--panel) !important; /* Texto blanco en fondo azul por contraste */
             font-weight: 600;
         }
 
-        /* Texto de las alternativas en color negro puro */
+        /* Clase general para el color de texto de las alternativas */
         .choice-text-color {
-            color: var(--choice-text);
+            color: var(--choice-text) !important; /* Forzar negro en todos los estados base */
         }
+
+        /* Si es correcta o incorrecta, permitimos que las clases de color de estado (ok/error) tomen el control */
+        .choice-correct-text { color: var(--ok) !important; }
+        .choice-incorrect-text { color: var(--error) !important; }
+
         
         /* Layout responsivo mejorado */
         .choices-grid { display: grid; gap: 1rem; }
@@ -145,6 +152,19 @@
              padding: 1.5rem;
              border-radius: 1rem;
              box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Estilo específico para el contenido del modal de bienvenida (fondo gris casi blanco) */
+        #welcome-modal .modal-content-area {
+            background: var(--bg); /* Fondo gris casi blanco para el contenido del modal */
+        }
+
+        /* Estilo para el logo en el header */
+        .header-logo {
+            height: 24px;
+            width: 24px;
+            object-fit: contain;
+            margin-right: 4px;
         }
 
     </style>
@@ -458,8 +478,9 @@
             const stageEl = document.getElementById('stage');
             
             // Renderiza el número de pregunta con estilo de chip
+            // Texto de la pregunta en color azul oscuro (var(--accent))
             const questionNumberHTML = `
-                <div class="flex items-start gap-4 mb-6 text-xl md:text-2xl font-bold text-text">
+                <div class="flex items-start gap-4 mb-6 text-xl md:text-2xl font-bold text-accent">
                     <span class="bg-chip/50 text-accent px-4 py-1 rounded-full shadow-inner shadow-black/10 text-lg md:text-xl shrink-0">${STATE.current + 1}.</span> 
                     <span class="flex-1">${formatMath(currentQ.text)}</span>
                 </div>
@@ -474,28 +495,41 @@
             currentQ.choices.forEach((choiceText, index) => {
                 const isSelected = currentQ.userChoice === index;
                 
-                // Adaptar clases de color a tema claro
+                // Aplicar choice-text-color para garantizar texto negro para las alternativas.
                 let choiceClasses = "chip p-3 md:p-4 text-base md:text-lg border-2 cursor-pointer transition duration-300 shadow-lg text-center font-medium glow-on-hover choice-text-color ";
                 
                 if (STATE.isGraded) {
                     if (index === currentQ.correct) {
-                        choiceClasses += " border-ok bg-ok/10 text-ok glow-accent";
+                        choiceClasses += " border-ok bg-ok/10 choice-correct-text";
                         if (isSelected) {
-                            choiceClasses += " choice-selected !bg-ok !text-white !shadow-xl !choice-text-color";
+                            // Cuando es correcta y seleccionada, el texto se vuelve blanco para contraste en fondo verde.
+                            choiceClasses += " choice-selected !bg-ok !text-white !shadow-xl"; 
                         }
                     } else if (isSelected && !currentQ.isCorrect) {
-                        choiceClasses += " border-error bg-error/10 text-error";
+                        choiceClasses += " border-error bg-error/10 choice-incorrect-text";
                     } else {
                         choiceClasses += " border-chip bg-chip text-muted";
                     }
                 } 
                 else {
                     if (isSelected) {
-                        choiceClasses += " choice-selected border-accent bg-accent/90 text-white shadow-2xl scale-[1.02] glow-accent !choice-text-color";
+                        // Cuando está seleccionada y no calificada, el texto se vuelve blanco en fondo azul oscuro.
+                        choiceClasses += " choice-selected border-accent bg-accent/90 text-white shadow-2xl scale-[1.02] glow-accent";
                     } else {
-                        choiceClasses += " border-chip/50 bg-chip hover:bg-chip-hover text-text";
+                        choiceClasses += " border-chip/50 bg-chip hover:bg-chip-hover";
                     }
                 }
+                
+                // Si está seleccionada (no calificada) o es correcta (calificada) el texto es blanco.
+                // Si no, forzamos el texto a negro puro (choice-text-color) si el estado no es el de acento.
+                if (!isSelected && !STATE.isGraded) {
+                    choiceClasses += " text-black"; // Asegura negro en estado base
+                } else if (STATE.isGraded && index !== currentQ.correct && isSelected) {
+                    choiceClasses += " text-error"; // Texto error
+                } else if (STATE.isGraded && index === currentQ.correct && !isSelected) {
+                     choiceClasses += " text-ok"; // Texto ok
+                }
+
 
                 const choiceEl = document.createElement('div');
                 choiceEl.className = choiceClasses;
@@ -732,7 +766,7 @@
         <header class="bg-panel shadow-lg sticky top-0 z-10 border-b border-gray-100">
             <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
                 
-                <!-- Título y Subtítulo (Profesor Mauricio) -->
+                <!-- Título y Subtítulo (Logo + Área de Matemáticas) -->
                 <div class="flex flex-col">
                     <h1 class="text-2xl font-extrabold text-accent flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-warn">
@@ -741,7 +775,16 @@
                         </svg>
                         Funciones
                     </h1>
-                    <p class="text-xs font-semibold mt-[-2px]" style="color:var(--warn); opacity: 0.8;">Profesor Mauricio</p>
+                    <!-- Área de Matemáticas con logo pequeño del colegio -->
+                    <p class="text-xs font-semibold mt-[-2px] flex items-center" style="color:var(--warn); opacity: 0.8;">
+                        <img 
+                            src="https://colegiocristianolebeaujour.cl/static/media/colegio-icon.0dca672a2e0028884bbe.png" 
+                            alt="Logo Colegio" 
+                            class="header-logo mr-1"
+                            onerror="this.onerror=null; this.src='https://placehold.co/24x24/ffc107/070b14?text=L';" 
+                        />
+                        Área de Matemáticas
+                    </p>
                 </div>
                 
                 <!-- Badge de Puntaje Dinámico con mejor estilo -->
@@ -797,7 +840,7 @@
 
     <!-- Modal de BIENVENIDA (Aparece al inicio) -->
     <div id="welcome-modal" class="fixed inset-0 bg-black/50 modal-start flex items-center justify-center p-4">
-        <div class="bg-panel p-8 md:p-10 rounded-2xl shadow-2xl max-w-2xl w-full text-center border-t-4 border-warn" onclick="event.stopPropagation()">
+        <div class="modal-content-area p-8 md:p-10 rounded-2xl shadow-2xl max-w-2xl w-full text-center border-t-4 border-warn" onclick="event.stopPropagation()">
             
             <!-- Contenedor Flex para la imagen y el texto -->
             <div class="flex flex-col md:flex-row items-center gap-6">
@@ -816,7 +859,7 @@
                 <div class="md:w-2/3 md:text-left text-center">
                     <h2 class="text-4xl font-extrabold mb-4 text-accent flex items-center justify-center md:justify-start gap-3">
                         <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-warn"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-                        ¡Hola! Prepárate.
+                        ¡Matemáticas en Casa! 
                     </h2>
                     <p class="text-xl mb-4 text-text">
                         Bienvenido a tu Quiz Dinámico de Funciones (Lineales y Afines), diseñado por el Colegio Le Beau Jour para que ¡¡estudies en casa!!.
