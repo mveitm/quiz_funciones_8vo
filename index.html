@@ -22,7 +22,7 @@
             --chip:#e9ecef; /* Gris claro para chips */
             --chip-hover:#dee2e6;
             --choice-text: #000000; /* Texto de alternativas ahora es negro puro */
-            --selected-choice-bg: #0ea5e9; /* Nuevo Celeste (Sky Blue 500) para la selección */
+            --selected-choice-bg: #60a5fa; /* Nuevo Celeste (Blue 400 de Tailwind) para la selección */
         }
         
         body { 
@@ -764,17 +764,14 @@
                 <!-- Título y Subtítulo (Logo + Área de Matemáticas) -->
                 <div class="flex flex-col">
                     <h1 class="text-2xl font-extrabold text-accent flex items-center gap-2">
-                        <!-- Icono de Lápiz para el encabezado del Quiz -->
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-warn">
-                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-                            <path d="m15 5 4 4"/>
-                        </svg>
+                        <!-- Icono removido por solicitud -->
                         Funciones
                     </h1>
                     <!-- Área de Matemáticas - CAMBIADO A ROJO (var(--error)) -->
                     <p class="text-xs font-semibold mt-[-2px] flex items-center" style="color:var(--error); opacity: 0.9;">
+                        <!-- RUTA RELATIVA: Se asume que logo.png está en el mismo directorio -->
                         <img 
-                            src="https://colegiocristianolebeaujour.cl/static/media/colegio-icon.0dca672a2e0028884bbe.png" 
+                            src="./logo.png" 
                             alt="Logo Colegio" 
                             class="header-logo mr-1"
                             onerror="this.onerror=null; this.src='https://placehold.co/24x24/ffc107/070b14?text=L';" 
@@ -843,23 +840,23 @@
                 
                 <!-- Columna de Imagen (Mascota - Logo del Colegio) -->
                 <div class="md:w-1/3 flex justify-center shrink-0">
+                    <!-- RUTA RELATIVA: Se asume que logo.png está en el mismo directorio -->
                     <img 
-                        src="https://colegiocristianolebeaujour.cl/static/media/colegio-icon.0dca672a2e0028884bbe.png" 
+                        src="./logo.png" 
                         alt="Logo del Colegio Cristiano Le Beau Jour" 
                         class="avatar-image rounded-xl shadow-xl p-2 bg-warn/10" 
                         onerror="this.onerror=null; this.src='https://placehold.co/150x150/ffc107/070b14?text=Logo';" 
                     />
                 </div>
                 
-                <!-- Columna de Texto - MODIFICADO A ALINEACIÓN IZQUIERDA -->
+                <!-- Columna de Texto - Alineado a la izquierda -->
                 <div class="md:w-2/3 md:text-left text-center md:text-left">
                     <h2 class="text-4xl font-extrabold mb-1 text-accent flex items-center justify-center md:justify-start gap-3">
-                        <!-- Icono de Lápiz -->
-                        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-warn"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                        <!-- Ícono del lápiz removido -->
                         ¡Matemáticas en Casa! 
                     </h2>
                     
-                    <!-- NUEVO SUBTÍTULO PARA EL NIVEL -->
+                    <!-- Subtítulo para el nivel -->
                     <p class="text-lg font-semibold mb-4 text-muted border-b pb-2 border-gray-200">
                         Material de estudio para 8° Básico
                     </p>
@@ -880,7 +877,6 @@
     </div>
     
     <!-- Modal de Resultados (usado para la calificación) -->
-    <!-- CLASES MODIFICADAS: items-start pt-16 para subirlo -->
     <div id="result-modal" class="fixed inset-0 bg-black/80 z-50 flex items-start pt-16 justify-center hidden p-4" onclick="hideModal()">
         <div class="bg-panel p-8 md:p-10 rounded-2xl shadow-2xl max-w-lg w-full text-center border-t-4 border-accent" onclick="event.stopPropagation()">
             <div id="modal-content">
