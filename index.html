@@ -110,7 +110,8 @@
             background-color: var(--chip);
             padding: 0 4px;
             border-radius: 4px;
-            color: var(--accent);
+            /* CAMBIO SOLICITADO: Color azul oscuro para expresiones matemáticas */
+            color: var(--accent); 
             font-weight: 700; /* Asegurar que las expresiones math también estén en negrita */
         }
         
@@ -410,7 +411,7 @@
 
             // Verificar si es la última pregunta
             if (STATE.current === STATE.questions.length - 1) {
-                // CAMBIO 3: Si se selecciona la respuesta en la última pregunta, mostrar resultados inmediatamente
+                // Si se selecciona la respuesta en la última pregunta, mostrar resultados inmediatamente
                 showResults();
             } else {
                  // Si no es la última, solo actualizar el botón Resultados
