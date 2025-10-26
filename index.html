@@ -110,7 +110,7 @@
             background-color: var(--chip);
             padding: 0 4px;
             border-radius: 4px;
-            /* CAMBIO SOLICITADO: Color azul oscuro para expresiones matemáticas */
+            /* Color azul oscuro para expresiones matemáticas */
             color: var(--accent); 
             font-weight: 700; /* Asegurar que las expresiones math también estén en negrita */
         }
@@ -171,6 +171,12 @@
             object-fit: contain;
             margin-right: 4px;
         }
+        
+        /* Clases para el modal de error/advertencia */
+        .modal-warn {
+            background-color: var(--warn);
+            color: var(--text);
+        }
 
     </style>
     <script>
@@ -198,7 +204,6 @@
 
         function initializeAudio() {
             // Nuevo sonido para selección (más percusivo)
-            // CAMBIO 2: Aumentar la duración (release) para un sonido más fuerte/largo al hacer click.
             clickSynth = new Tone.PluckSynth({ dampening: 1000, release: 0.15 }).toDestination(); 
             navSynth = new Tone.Synth({ oscillator: { type: "triangle" }, envelope: { attack: 0.005, decay: 0.15, sustain: 0.01, release: 0.1 } }).toDestination();
             successSynth = new Tone.PolySynth(Tone.Synth).toDestination();
@@ -208,7 +213,6 @@
         async function playSound(type) {
             await Tone.start(); 
             switch (type) {
-                // CAMBIO 2: Mayor volumen (C5) y duración (8n) para el click
                 case 'click': clickSynth.triggerAttackRelease("C5", "8n", Tone.now(), 0.8); break; 
                 case 'nav': navSynth.triggerAttackRelease("C4", "16n"); break;
                 case 'success': successSynth.triggerAttackRelease(["C5", "E5", "G5"], "4n"); break;
@@ -409,17 +413,20 @@
                  question.userChoice = choiceIndex;
             } 
 
-            // Verificar si es la última pregunta
-            if (STATE.current === STATE.questions.length - 1) {
-                // Si se selecciona la respuesta en la última pregunta, mostrar resultados inmediatamente
-                showResults();
-            } else {
-                 // Si no es la última, solo actualizar el botón Resultados
-                const isAllAnswered = STATE.questions.every(q => q.userChoice !== null);
-                const btnEnviar = document.getElementById('btnEnviar');
-                btnEnviar.classList.toggle('pulse', isAllAnswered);
+            // **AJUSTE SOLICITADO**: Al seleccionar la última pregunta,
+            // ya NO llamamos a showResults() automáticamente.
+            // Solo actualizamos el botón 'Resultados' para que resalte.
+            
+            // Si el quiz está completo, mostramos un mensaje sutil de que el botón Resultados está listo
+            const answeredCount = STATE.questions.filter(q => q.userChoice !== null).length;
+            if (answeredCount === STATE.TOTAL_QUESTIONS) {
+                // Verificar si era la última pregunta la que se respondió
+                if (answeredCount === STATE.TOTAL_QUESTIONS && question.userChoice === choiceIndex) {
+                     showToast('¡Quiz completo! Presiona el botón "Ver Resultados" para calificar.', 'warn');
+                }
             }
-            renderStage();
+            
+            renderStage(); // Llama a renderMapAndButtons() internamente para actualizar el botón de resultados
         }
 
         function navigate(offset) {
@@ -463,10 +470,19 @@
         // -----------------------------------------------------------
 
         function renderScoreBadge() {
-            let scoreText = "Puntaje: --/12";
-            if (STATE.isGraded) {
+            const answeredCount = STATE.questions.filter(q => q.userChoice !== null).length;
+            let scoreText = "";
+
+            if (!STATE.isAppReady) {
+                scoreText = "Quiz Pendiente";
+            } else if (STATE.isGraded) {
+                // Modo calificado: Muestra el puntaje final
                 scoreText = `Puntaje: ${STATE.correctCount}/${STATE.TOTAL_QUESTIONS}`;
+            } else {
+                // Modo no calificado: Muestra el progreso de respuestas
+                scoreText = `Respondidas: ${answeredCount}/${STATE.TOTAL_QUESTIONS}`;
             }
+            
             document.getElementById('scoreBadge').textContent = scoreText;
         }
 
@@ -597,26 +613,27 @@
             document.getElementById('btnPrev').disabled = STATE.current === 0 || STATE.isGraded;
             document.getElementById('btnNext').disabled = STATE.current === STATE.questions.length - 1 || STATE.isGraded;
             
-            const btnEnviar = document.getElementById('btnEnviar');
-            const isAllAnswered = STATE.questions.every(q => q.userChoice !== null);
+            const answeredCount = STATE.questions.filter(q => q.userChoice !== null).length;
+            const isAllAnswered = answeredCount === STATE.questions.length;
 
+            const btnEnviar = document.getElementById('btnEnviar');
+            
             if (STATE.isGraded) {
-                // Estado Calificado: Botón Reiniciar
-                btnEnviar.textContent = 'Revisar Respuestas'; // Mantenemos el botón para revisar, la acción de Reiniciar va en el modal
+                // Estado Calificado: Botón Revisar
+                btnEnviar.textContent = 'Revisar Respuestas'; 
                 btnEnviar.classList.remove('pulse', 'opacity-30', 'btn-restart');
                 btnEnviar.style.backgroundImage = 'linear-gradient(to right, var(--accent), #1f50a8)'; // Azul oscuro para revisión
                 btnEnviar.disabled = false;
                 btnEnviar.onclick = () => navigate(0); // Simplemente vuelve a la primera pregunta para revisar
             } else {
                 // Estado No Calificado: Botón Resultados
-                // El botón solo cambia de texto e indica si están todas respondidas
-                btnEnviar.textContent = `Resultados (${STATE.questions.filter(q=>q.userChoice!==null).length}/${STATE.questions.length})`;
+                btnEnviar.textContent = isAllAnswered ? `Ver Resultados` : `Ver Resultados (${answeredCount}/${STATE.questions.length})`;
                 btnEnviar.classList.remove('btn-restart'); 
                 btnEnviar.classList.toggle('pulse', isAllAnswered);
                 btnEnviar.classList.toggle('opacity-30', !isAllAnswered);
-                btnEnviar.style.backgroundImage = isAllAnswered ? 'linear-gradient(to right, var(--warn), #ffda5a)' : 'none';
-                btnEnviar.disabled = !isAllAnswered;
-                btnEnviar.onclick = showResults; // Solo si se presiona explícitamente y no es la última pregunta
+                btnEnviar.style.backgroundImage = 'linear-gradient(to right, var(--warn), #ffda5a)'; // Siempre amarillo para CTA
+                btnEnviar.disabled = false; // Permitimos el click para mostrar el mensaje de advertencia
+                btnEnviar.onclick = showResults; 
             }
         }
 
@@ -627,13 +644,16 @@
         function showResults() {
             if (STATE.isGraded || !STATE.isAppReady) return;
 
-            const isAllAnswered = STATE.questions.every(q => q.userChoice !== null);
+            const answeredCount = STATE.questions.filter(q => q.userChoice !== null).length;
+            const isAllAnswered = answeredCount === STATE.questions.length;
+            
+            // **AJUSTE SOLICITADO**: Si no están todas respondidas, mostramos un modal de advertencia, no el quiz.
             if (!isAllAnswered) {
-                // Esto solo debería ocurrir si el usuario fuerza el botón de Enviar
-                showToast('¡Debes responder todas las preguntas antes de ver los resultados!', 'warn');
+                showWarningModal(answeredCount);
                 return;
             }
 
+            // Si están todas respondidas, procedemos a calificar y mostrar resultados
             const correctCount = countAndGrade();
             const totalQuestions = STATE.questions.length;
             const percentage = ((correctCount / totalQuestions) * 100).toFixed(1);
@@ -641,16 +661,16 @@
             STATE.isGraded = true;
             STATE.current = 0; 
             
+            // **AJUSTE SOLICITADO**: Quitamos el toast de aquí, ya que el modal lo oculta.
+            // El mensaje de éxito/fracaso se incorpora en el modal de resumen.
             if (correctCount >= totalQuestions * 0.75) {
                 playSound('success');
-                showToast('¡Felicidades! Excelente puntaje.', 'ok');
             } else {
                 playSound('fail');
-                showToast('¡Buen intento! Revisa tus respuestas.', 'warn');
             }
 
             const reportText = generateReport(correctCount, totalQuestions, percentage);
-            showSummaryModal(reportText.summaryHTML, correctCount, percentage); // Pasa el porcentaje
+            showSummaryModal(reportText.summaryHTML, correctCount, percentage); 
             
             // Renderizar la etapa nuevamente para mostrar los colores de calificación
             renderStage();
@@ -658,6 +678,30 @@
             // Enviar reporte (asíncrono)
             sendReportBeacon(reportText.rawText, correctCount, totalQuestions);
 
+        }
+
+        // Nuevo: Muestra un modal cuando faltan preguntas por responder
+        function showWarningModal(answeredCount) {
+             const remaining = STATE.TOTAL_QUESTIONS - answeredCount;
+             const contentHTML = `
+                <h2 class="text-3xl font-extrabold mb-4 text-text">¡Alto ahí!</h2>
+                <div class="p-6 md:p-8 results-container bg-panel shadow-none border-t-4 border-warn">
+                    <p class="text-xl mb-4 font-semibold">
+                        Aún te faltan <span class="text-error font-black">${remaining}</span> preguntas por responder.
+                    </p>
+                    <p class="text-lg text-muted mb-6">
+                        Para calificar y guardar tu nota, debes responder las ${STATE.TOTAL_QUESTIONS} preguntas.
+                    </p>
+                    <p class="text-sm italic text-left">
+                        Puedes usar los números de la parte inferior para saltar a las preguntas pendientes.
+                    </p>
+                </div>
+                <button onclick="hideModal()" class="action-button bg-warn text-text py-3 px-6 hover:bg-warn/80 font-black mt-6 w-full">
+                    Volver al Quiz
+                </button>
+             `;
+             document.getElementById('modal-content').innerHTML = contentHTML;
+             document.getElementById('result-modal').classList.remove('hidden'); 
         }
 
         function restartQuiz() {
@@ -673,10 +717,14 @@
         }
 
         function generateReport(correctCount, totalQuestions, percentage) {
-            let summaryHTML = `
-                <h2 class="text-3xl font-extrabold mb-4 text-accent">Tu Desempeño</h2>
+            let congratsMessage = correctCount >= totalQuestions * 0.75 ? 
+                `<h2 class="text-3xl font-extrabold mb-4 text-ok">¡Excelente Trabajo!</h2>` : 
+                `<h2 class="text-3xl font-extrabold mb-4 text-warn">¡Buen Intento!</h2>`;
+                
+            let summaryHTML = congratsMessage;
+            summaryHTML += `
                 <p class="text-2xl font-black mb-4" style="color:var(--accent)">
-                    ¡Obtuviste un ${percentage}%!
+                    Obtuviste un ${percentage}%
                 </p>
             `;
             
@@ -898,11 +946,11 @@
         </div>
     </div>
     
-    <!-- Modal de Resultados (usado para la calificación) -->
+    <!-- Modal de Resultados (usado para la calificación y advertencias) -->
     <div id="result-modal" class="fixed inset-0 bg-black/80 z-50 flex items-start pt-16 justify-center hidden p-4" onclick="hideModal()">
         <div class="bg-panel p-8 md:p-10 rounded-2xl shadow-2xl max-w-lg w-full text-center border-t-4 border-accent" onclick="event.stopPropagation()">
             <div id="modal-content">
-                <!-- Contenido dinámico de resultados -->
+                <!-- Contenido dinámico de resultados/advertencia -->
             </div>
         </div>
     </div>
