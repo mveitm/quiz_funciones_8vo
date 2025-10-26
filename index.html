@@ -70,7 +70,7 @@
             box-shadow: 0 0 8px var(--accent), inset 0 0 5px rgba(0, 0, 0, 0.2);
         }
 
-        /* IDEA 2: Barra de navegación fija y flotante (Sticky Footer) */
+        /* Barra de navegación fija y flotante (Sticky Footer) */
         .sticky-footer {
             position: fixed;
             bottom: 0;
@@ -109,6 +109,16 @@
             box-shadow: 0 0 15px var(--warn), 0 6px 15px rgba(0, 0, 0, 0.5);
         }
 
+        /* Estilo para el botón Reiniciar Quiz (visible y contrastante) */
+        .btn-restart {
+            background-color: var(--error) !important;
+            color: var(--bg) !important;
+            box-shadow: 0 0 10px var(--error), 0 4px 10px rgba(0, 0, 0, 0.4);
+        }
+        .btn-restart:hover {
+            background-color: var(--error) !important;
+        }
+
     </style>
     <script>
         // *****************************************************************************
@@ -127,13 +137,14 @@
         };
 
         // -----------------------------------------------------------
-        // 0. CONFIGURACIÓN DE AUDIO, TOAST Y UTILS (Mantenido)
+        // 0. CONFIGURACIÓN DE AUDIO, TOAST Y UTILS (Actualización de Sonido)
         // -----------------------------------------------------------
 
         let clickSynth, navSynth, successSynth, failSynth;
 
         function initializeAudio() {
-            clickSynth = new Tone.MembraneSynth({ oscillator: { type: "square" }, envelope: { attack: 0.001, decay: 0.1, sustain: 0.01, release: 0.1 } }).toDestination();
+            // Nuevo sonido para selección (más percusivo)
+            clickSynth = new Tone.PluckSynth({ dampening: 1000, release: 0.05 }).toDestination();
             navSynth = new Tone.Synth({ oscillator: { type: "triangle" }, envelope: { attack: 0.005, decay: 0.15, sustain: 0.01, release: 0.1 } }).toDestination();
             successSynth = new Tone.PolySynth(Tone.Synth).toDestination();
             failSynth = new Tone.PolySynth(Tone.Synth).toDestination();
@@ -142,7 +153,7 @@
         async function playSound(type) {
             await Tone.start(); 
             switch (type) {
-                case 'click': clickSynth.triggerAttackRelease("C5", "8n"); break;
+                case 'click': clickSynth.triggerAttackRelease("C5", "16n"); break; // Usa PluckSynth
                 case 'nav': navSynth.triggerAttackRelease("C4", "16n"); break;
                 case 'success': successSynth.triggerAttackRelease(["C5", "E5", "G5"], "4n"); break;
                 case 'fail': failSynth.triggerAttackRelease(["C3", "C#3", "D3"], "8n"); break;
@@ -489,15 +500,17 @@
             const isAllAnswered = STATE.questions.every(q => q.userChoice !== null);
 
             if (STATE.isGraded) {
+                // Estado Calificado: Botón Reiniciar
                 btnEnviar.textContent = 'Reiniciar Quiz';
-                btnEnviar.classList.remove('pulse');
-                btnEnviar.classList.add('bg-accent');
+                btnEnviar.classList.remove('pulse', 'opacity-30');
+                btnEnviar.classList.add('btn-restart'); // Clase con estilo de Reinicio
                 btnEnviar.style.backgroundImage = 'none'; 
                 btnEnviar.disabled = false;
                 btnEnviar.onclick = restartQuiz;
             } else {
+                // Estado No Calificado: Botón Resultados
                 btnEnviar.textContent = `Resultados (${STATE.questions.filter(q=>q.userChoice!==null).length}/${STATE.questions.length})`;
-                btnEnviar.classList.remove('bg-accent');
+                btnEnviar.classList.remove('btn-restart'); // Asegura que no tenga el estilo de Reinicio
                 btnEnviar.classList.toggle('pulse', isAllAnswered);
                 btnEnviar.classList.toggle('opacity-30', !isAllAnswered);
                 btnEnviar.style.backgroundImage = isAllAnswered ? 'linear-gradient(to right, var(--warn), #ffcc00)' : 'none';
@@ -543,21 +556,9 @@
         }
 
         function restartQuiz() {
-            const confirmModal = document.getElementById('modal');
-            
-            document.getElementById('modal-content').innerHTML = `
-                <h2 class="text-2xl font-bold mb-4 text-error">¿Reiniciar Quiz?</h2>
-                <p class="mb-6 text-muted">Se generarán <span class="text-warn">nuevas preguntas</span> y se perderán los resultados actuales.</p>
-                <div class="flex flex-col md:flex-row justify-center gap-4">
-                    <button id="cancelRestart" class="action-button bg-chip text-text py-2 px-4 hover:bg-chip-hover">Cancelar</button>
-                    <button id="confirmRestart" class="action-button bg-error text-bg py-2 px-4 hover:bg-error/80">Reiniciar Ahora</button>
-                </div>
-            `;
-            
-            document.getElementById('cancelRestart').onclick = hideModal;
-            document.getElementById('confirmRestart').onclick = performRestart;
-
-            confirmModal.classList.remove('hidden');
+            // Se puede llamar directamente desde el botón sin modal para mayor fluidez, 
+            // ya que la acción del botón es clara cuando el quiz está calificado.
+            performRestart();
         }
         
         function performRestart() {
@@ -645,14 +646,20 @@
     <!-- Encabezado Fijo con Diseño Elevado -->
     <header class="bg-panel shadow-2xl sticky top-0 z-10 border-b border-white/5">
         <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-            <!-- Título Limitado a "Funciones" -->
-            <h1 class="text-2xl font-extrabold text-accent flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-warn">
-                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-                    <path d="m15 5 4 4"/>
-                </svg>
-                Funciones
-            </h1>
+            
+            <!-- Título y Subtítulo (Profesor Mauricio) -->
+            <div class="flex flex-col">
+                <h1 class="text-2xl font-extrabold text-accent flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-warn">
+                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                        <path d="m15 5 4 4"/>
+                    </svg>
+                    Funciones
+                </h1>
+                <!-- Nuevo: Nombre del Profesor en amarillo suave -->
+                <p class="text-xs font-semibold mt-[-2px]" style="color:var(--warn); opacity: 0.8;">Profesor Mauricio</p>
+            </div>
+            
             <!-- Badge de Puntaje Dinámico con mejor estilo -->
             <div id="scoreBadge" class="text-sm font-semibold text-warn bg-chip px-4 py-1.5 rounded-full shadow-lg border border-warn/30">
                 Puntaje: --/12
@@ -668,12 +675,10 @@
             <div id="stage" class="min-h-[250px] flex flex-col justify-center gap-4">
                 <p class="text-center text-muted">Cargando...</p>
             </div>
-            
-            <!-- IDEA 2: Mapa de Navegación se mueve al Sticky Footer -->
         </div>
     </main>
     
-    <!-- IDEA 2: Sticky Footer Fijo para la navegación tipo App Móvil -->
+    <!-- Sticky Footer Fijo para la navegación tipo App Móvil -->
     <footer class="sticky-footer">
         <div class="max-w-4xl mx-auto px-4">
             <!-- Mapa de Navegación (Chips) -->
@@ -688,7 +693,7 @@
                     Anterior
                 </button>
                 
-                <!-- Botón de Resultados: La clase #btnEnviar ahora tiene un gradiente y sombra más agresiva. -->
+                <!-- Botón de Resultados/Reiniciar (se adapta en JS) -->
                 <button id="btnEnviar" class="action-button text-bg p-3 w-1/3 font-extrabold disabled:opacity-30">
                     Resultados
                 </button>
