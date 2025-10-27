@@ -4,9 +4,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Quiz: Funciones Lineales y Afines - App</title>
-    <!-- Carga de Tailwind CSS para un diseño limpio y responsivo -->
+
+    <meta property="og:title" content="¡Desafío de Funciones! | 8vo Básico" />
+
+    <meta property="og:description" content="Repasa el tema de Funciones. Material Digital de Estudio del Colegio." />
+
+    <meta property="og:image" content="./Material para la casa.png" />
+
+    <meta property="og:url" content="https://tu-usuario.github.io/tu-repo/index.html" />
+
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Carga de Tone.js para efectos de sonido (minimalista) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         /* Definición de variables CSS para el tema CLARO/SUAVE */
@@ -29,7 +39,7 @@
         body { 
             font-family: 'Inter', sans-serif; 
             background: var(--bg); 
-            color: var(--text); 
+            color: var(--text);  
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -915,21 +925,16 @@
     </script>
 </head>
 <body class="flex flex-col">
-    <!-- Contenedor principal (Se oculta al inicio) -->
     <div id="main-content-wrapper" class="flex flex-col flex-grow transition-opacity duration-500">
         
-        <!-- Encabezado Fijo con Diseño Elevado -->
         <header class="bg-panel shadow-lg sticky top-0 z-10 border-b border-gray-100">
             <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
                 
-                <!-- Título y Subtítulo (Logo + Área de Matemáticas) -->
                 <div class="flex flex-col">
                     <h1 class="text-2xl font-extrabold text-accent flex items-center gap-2">
                         Funciones
                     </h1>
-                    <!-- Área de Matemáticas - CAMBIADO A ROJO (var(--error)) -->
                     <p class="text-xs font-semibold mt-[-2px] flex items-center" style="color:var(--error); opacity: 0.9;">
-                        <!-- RUTA RELATIVA: Se asume que logo.png está en el mismo directorio -->
                         <img 
                             src="./logo.png" 
                             alt="Logo Colegio" 
@@ -940,41 +945,32 @@
                     </p>
                 </div>
                 
-                <!-- Badge de Puntaje Dinámico con mejor estilo -->
                 <div id="scoreBadge" class="text-sm font-semibold text-text bg-chip px-4 py-1.5 rounded-full shadow-md border border-gray-200">
                     Quiz Pendiente
                 </div>
             </div>
         </header>
 
-        <!-- Contenido Principal (flex-grow para ocupar el espacio restante) -->
         <main class="flex-grow p-4 md:p-8">
             <div class="max-w-4xl mx-auto bg-panel p-6 md:p-10 rounded-2xl shadow-xl border-t-4 border-accent/50">
                 
-                <!-- Contenedor de la Pregunta y Alternativas -->
                 <div id="stage" class="min-h-[250px] flex flex-col justify-center gap-4">
                     <p class="text-center text-muted">Presiona "Comenzar" para cargar el quiz.</p>
                 </div>
             </div>
         </main>
         
-        <!-- Sticky Footer Fijo para la navegación tipo App Móvil -->
         <footer class="sticky-footer">
             <div class="max-w-4xl mx-auto px-4">
-                <!-- Mapa de Navegación (Chips) -->
                 <div id="mapa" class="flex flex-wrap justify-center gap-3 mb-4">
-                    <!-- Chips de navegación -->
-                </div>
+                    </div>
                 
-                <!-- Botones de Control -->
                 <div id="footer-controls" class="flex justify-between items-center gap-4">
-                    <!-- Botones adaptados al tema claro -->
                     <button id="btnPrev" class="action-button bg-chip text-text p-3 w-1/3 hover:bg-chip-hover disabled:opacity-30 flex items-center justify-center gap-1 glow-on-hover" disabled>
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                         Anterior
                     </button>
                     
-                    <!-- Botón de Resultados/Reiniciar (se adapta en JS) -->
                     <button id="btnEnviar" class="action-button text-bg p-3 w-1/3 font-extrabold disabled:opacity-30">
                         Resultados
                     </button>
@@ -986,21 +982,14 @@
                 </div>
             </div>
         </footer>
-    </div> <!-- Fin de main-content-wrapper -->
+    </div> <div id="toast" role="alert" class="fixed bottom-20 left-1/2 -translate-x-1/2 p-3 rounded-xl shadow-lg transition duration-300 opacity-0 z-50 text-center text-sm" style="transition: all 0.5s ease-out; transform: translate(-50%, 0); max-width: 90vw;"></div>
 
-    <!-- Toast (Notificación) -->
-    <div id="toast" role="alert" class="fixed bottom-20 left-1/2 -translate-x-1/2 p-3 rounded-xl shadow-lg transition duration-300 opacity-0 z-50 text-center text-sm" style="transition: all 0.5s ease-out; transform: translate(-50%, 0); max-width: 90vw;"></div>
-
-    <!-- Modal de BIENVENIDA (Aparece al inicio) -->
     <div id="welcome-modal" class="fixed inset-0 bg-black/50 modal-start flex items-center justify-center p-4">
         <div class="modal-content-area p-8 md:p-10 rounded-2xl shadow-2xl max-w-2xl w-full text-center border-t-4 border-warn" onclick="event.stopPropagation()">
             
-            <!-- Contenedor Flex para la imagen y el texto -->
             <div class="flex flex-col md:flex-row items-center gap-6">
                 
-                <!-- Columna de Imagen (Mascota - Logo del Colegio) -->
                 <div class="md:w-1/3 flex justify-center shrink-0">
-                    <!-- RUTA RELATIVA: Se asume que logo.png está en el mismo directorio -->
                     <img 
                         src="./logo.png" 
                         alt="Logo del Colegio Cristiano Le Beau Jour" 
@@ -1009,13 +998,11 @@
                     />
                 </div>
                 
-                <!-- Columna de Texto - Alineado a la izquierda -->
                 <div class="md:w-2/3 md:text-left text-center md:text-left">
                     <h2 class="text-4xl font-extrabold mb-1 text-accent flex items-center justify-center md:justify-start gap-3">
                         ¡Matemáticas en Casa! 
                     </h2>
                     
-                    <!-- Subtítulo para el nivel -->
                     <p class="text-lg font-semibold mb-4 text-muted border-b pb-2 border-gray-200">
                         Material de estudio para 8° Básico
                     </p>
@@ -1035,12 +1022,10 @@
         </div>
     </div>
     
-    <!-- Modal de Resultados (usado para la calificación y advertencias) -->
     <div id="result-modal" class="fixed inset-0 bg-black/80 z-50 flex items-start pt-16 justify-center hidden p-4" onclick="hideModal()">
         <div class="bg-panel p-8 md:p-10 rounded-2xl shadow-2xl max-w-lg w-full text-center border-t-4 border-accent" onclick="event.stopPropagation()">
             <div id="modal-content">
-                <!-- Contenido dinámico de resultados/advertencia -->
-            </div>
+                </div>
         </div>
     </div>
 </body>
